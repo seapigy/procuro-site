@@ -6,7 +6,7 @@
  */
 
 import prisma from './lib/prisma';
-import { matchItemToRetailers } from './services/matchItem';
+// import { matchItemToRetailers } from './services/matchItem'; // Skipping for seed
 
 async function main() {
   console.log('🌱 Starting database seed...');
@@ -29,18 +29,31 @@ async function main() {
     where: { userId: testUser.id },
   });
 
-  // Create 2-3 example items
+  // Create 3 example items with all fields
   const item1 = await prisma.item.create({
     data: {
       userId: testUser.id,
       name: 'HP Printer Paper 500 Sheets',
+      sku: 'HP-PAPER-500',
       category: 'Office Supplies',
       lastPaidPrice: 12.99,
+      lastCheckedPrice: 11.49,
+      vendorName: 'Office Depot',
       upc: '043875321890',
       prices: {
         create: [
-          { retailer: 'Amazon', price: 12.99, date: new Date() },
-          { retailer: 'Walmart', price: 11.49, date: new Date() },
+          { 
+            retailer: 'Amazon', 
+            price: 12.99, 
+            url: 'https://amazon.com/hp-printer-paper',
+            date: new Date() 
+          },
+          { 
+            retailer: 'Walmart', 
+            price: 11.49, 
+            url: 'https://walmart.com/hp-printer-paper',
+            date: new Date() 
+          },
         ],
       },
     },
@@ -50,13 +63,26 @@ async function main() {
     data: {
       userId: testUser.id,
       name: 'Staples Heavy Duty Stapler',
+      sku: 'STAPL-HD-001',
       category: 'Office Equipment',
       lastPaidPrice: 24.99,
+      lastCheckedPrice: 22.50,
+      vendorName: 'Staples Direct',
       upc: '087129043210',
       prices: {
         create: [
-          { retailer: 'Amazon', price: 24.99, date: new Date() },
-          { retailer: 'Staples', price: 22.50, date: new Date() },
+          { 
+            retailer: 'Amazon', 
+            price: 24.99,
+            url: 'https://amazon.com/staples-stapler',
+            date: new Date() 
+          },
+          { 
+            retailer: 'Staples', 
+            price: 22.50,
+            url: 'https://staples.com/heavy-duty-stapler',
+            date: new Date() 
+          },
         ],
       },
     },
@@ -66,14 +92,32 @@ async function main() {
     data: {
       userId: testUser.id,
       name: 'BIC Round Stic Pens 60-Pack',
+      sku: 'BIC-PEN-60PK',
       category: 'Writing Supplies',
       lastPaidPrice: 8.49,
+      lastCheckedPrice: 7.50,
+      vendorName: 'Office Supply Co',
       upc: '070330322103',
       prices: {
         create: [
-          { retailer: 'Amazon', price: 8.49, date: new Date() },
-          { retailer: 'Target', price: 7.99, date: new Date() },
-          { retailer: 'Walmart', price: 7.50, date: new Date() },
+          { 
+            retailer: 'Amazon', 
+            price: 8.49,
+            url: 'https://amazon.com/bic-pens-60pack',
+            date: new Date() 
+          },
+          { 
+            retailer: 'Target', 
+            price: 7.99,
+            url: 'https://target.com/bic-pens',
+            date: new Date() 
+          },
+          { 
+            retailer: 'Walmart', 
+            price: 7.50,
+            url: 'https://walmart.com/bic-round-stic-pens',
+            date: new Date() 
+          },
         ],
       },
     },
@@ -81,38 +125,95 @@ async function main() {
 
   console.log('');
   console.log('✅ Created example items:');
-  console.log(`   1. ${item1.name} - $${item1.lastPaidPrice}`);
-  console.log(`   2. ${item2.name} - $${item2.lastPaidPrice}`);
-  console.log(`   3. ${item3.name} - $${item3.lastPaidPrice}`);
+  console.log(`   1. ${item1.name} - $${item1.lastPaidPrice} (SKU: ${item1.sku})`);
+  console.log(`   2. ${item2.name} - $${item2.lastPaidPrice} (SKU: ${item2.sku})`);
+  console.log(`   3. ${item3.name} - $${item3.lastPaidPrice} (SKU: ${item3.sku})`);
   
-  // Match items to retailers
+  // Create a sample alert for item3 (price drop)
   console.log('');
-  console.log('🔗 Matching items to retailers...');
+  console.log('🔔 Creating sample alert...');
   
-  const items = [item1, item2, item3];
-  for (const item of items) {
-    const match = await matchItemToRetailers(item.name, item.lastPaidPrice);
-    if (match) {
-      await prisma.item.update({
-        where: { id: item.id },
-        data: {
-          matchedRetailer: match.retailer,
-          matchedUrl: match.url,
-          matchedPrice: match.price,
-        },
-      });
-      console.log(`   ✓ ${item.name} → ${match.retailer} ($${match.price.toFixed(2)})`);
-    } else {
-      console.log(`   ✗ ${item.name} → No match found`);
-    }
-  }
+  const alert = await prisma.alert.create({
+    data: {
+      userId: testUser.id,
+      itemId: item3.id,
+      retailer: 'Walmart',
+      oldPrice: 8.49,
+      newPrice: 7.50,
+      priceDropAmount: 0.99,
+      url: 'https://walmart.com/bic-round-stic-pens',
+      savingsPerOrder: 0.99,
+      estimatedMonthlySavings: 0.99,
+      seen: false,
+      viewed: false,
+    },
+  });
+  
+  console.log(`   ✓ Alert created: ${item3.name} price dropped $${alert.priceDropAmount.toFixed(2)}`);
+  
+  // Create savings summary
+  console.log('');
+  console.log('💰 Creating savings summary...');
+  
+  const savingsSummary = await prisma.savingsSummary.create({
+    data: {
+      userId: testUser.id,
+      monthlyTotal: 2.48,  // Sum of potential monthly savings
+      yearToDate: 29.76,   // 12 months of savings
+    },
+  });
+  
+  console.log(`   ✓ Savings summary: $${savingsSummary.monthlyTotal.toFixed(2)}/month, $${savingsSummary.yearToDate.toFixed(2)} YTD`);
+  
+  // Set matched retailers manually for demo data
+  console.log('');
+  console.log('🔗 Setting matched retailers...');
+  
+  await prisma.item.update({
+    where: { id: item1.id },
+    data: {
+      matchedRetailer: 'Walmart',
+      matchedUrl: 'https://walmart.com/hp-printer-paper',
+      matchedPrice: 11.49,
+    },
+  });
+  
+  await prisma.item.update({
+    where: { id: item2.id },
+    data: {
+      matchedRetailer: 'Staples',
+      matchedUrl: 'https://staples.com/heavy-duty-stapler',
+      matchedPrice: 22.50,
+    },
+  });
+  
+  await prisma.item.update({
+    where: { id: item3.id },
+    data: {
+      matchedRetailer: 'Walmart',
+      matchedUrl: 'https://walmart.com/bic-round-stic-pens',
+      matchedPrice: 7.50,
+    },
+  });
+  
+  console.log(`   ✓ ${item1.name} → Walmart ($11.49)`);
+  console.log(`   ✓ ${item2.name} → Staples ($22.50)`);
+  console.log(`   ✓ ${item3.name} → Walmart ($7.50)`);
   
   console.log('');
   console.log('📊 Database seeded successfully!');
   console.log('');
+  console.log('Summary:');
+  console.log('   • 1 User (test@procuroapp.com)');
+  console.log('   • 3 Items with vendors and prices');
+  console.log('   • 7 Price records from different retailers');
+  console.log('   • 1 Alert for price drop');
+  console.log('   • 1 Savings summary record');
+  console.log('');
   console.log('Next steps:');
   console.log('👉 Connect to QuickBooks: http://localhost:5000/api/qb/connect');
   console.log('👉 View items: http://localhost:5000/api/qb/items');
+  console.log('👉 Open Prisma Studio: npx prisma studio');
 }
 
 main()

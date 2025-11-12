@@ -24,23 +24,29 @@ model User {
   updatedAt DateTime @updatedAt
 
   // QuickBooks integration
+  quickbooksId           String?
   quickbooksAccessToken  String?
   quickbooksRefreshToken String?
   quickbooksRealmId      String?
   quickbooksConnectedAt  DateTime?
+  onboardingCompleted    Boolean  @default(false)
 
-  items  Item[]
-  alerts Alert[]
+  items           Item[]
+  alerts          Alert[]
+  savingsSummary  SavingsSummary[]
 }
 
 model Item {
   id                  Int      @id @default(autoincrement())
   userId              Int
   name                String
+  sku                 String?
   category            String?
   lastPaidPrice       Float
+  lastCheckedPrice    Float?
   quantityPerOrder    Int      @default(1)
   reorderIntervalDays Int      @default(30)
+  vendorName          String?
   upc                 String?
   matchedRetailer     String?
   matchedUrl          String?
@@ -60,6 +66,7 @@ model Price {
   itemId   Int
   retailer String
   price    Float
+  url      String?
   date     DateTime @default(now())
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -76,11 +83,14 @@ model Alert {
   retailer                String
   newPrice                Float
   oldPrice                Float
+  priceDropAmount         Float
   url                     String?
   savingsPerOrder         Float
   estimatedMonthlySavings Float
   seen                    Boolean  @default(false)
+  viewed                  Boolean  @default(false)
   alertDate               DateTime @default(now())
+  dateTriggered           DateTime @default(now())
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -89,4 +99,16 @@ model Alert {
   @@index([userId])
   @@index([alertDate])
   @@index([seen])
+}
+
+model SavingsSummary {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  monthlyTotal   Float    @default(0)
+  yearToDate     Float    @default(0)
+  lastCalculated DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
