@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import apiRoutes from './routes';
 import quickbooksRoutes from './routes/quickbooks';
 import itemsRoutes from './routes/items';
@@ -26,7 +27,41 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Security: Block access to sensitive folders
+const blockedPaths = [
+  '/server',
+  '/jobs',
+  '/providers',
+  '/db',
+  '/.env',
+  '/node_modules',
+  '/prisma',
+  '/.git',
+  '/src'
+];
+
+app.use((req, res, next) => {
+  const requestPath = req.path.toLowerCase();
+  
+  // Block access to sensitive folders
+  if (blockedPaths.some(blocked => requestPath.startsWith(blocked))) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  
+  // Block access to TypeScript source files
+  if (requestPath.endsWith('.ts') || requestPath.endsWith('.tsx')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  
+  // Block access to environment files
+  if (requestPath.includes('.env')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  
+  next();
+});
+
+// Health check endpoint (public)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -35,7 +70,25 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Serve static legal pages
+app.get('/support', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../pages/support.html'));
+});
+
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../pages/privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../pages/terms.html'));
+});
+
+// Serve landing page at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../landing/index.html'));
+});
+
+// API routes (public, but authenticated)
 app.use('/api', apiRoutes);
 app.use('/api/qb', quickbooksRoutes);
 app.use('/api/items', itemsRoutes);
