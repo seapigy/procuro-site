@@ -125,7 +125,7 @@ router.get('/items', async (req: Request, res: Response) => {
     // Fetch items for this user
     const items = await prisma.item.findMany({
       where: { userId: user.id },
-      orderBy: { date: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     res.json({
@@ -198,7 +198,6 @@ async function fetchAndStoreItems(
             name: item?.name || line.Description || 'Unnamed Item',
             category: detail.ClassRef?.name || line.Description || null,
             lastPaidPrice: line.Amount || 0,
-            date: purchase.TxnDate ? new Date(purchase.TxnDate) : new Date(),
           });
         } else if (line.DetailType === 'AccountBasedExpenseLineDetail' && line.AccountBasedExpenseLineDetail) {
           // Handle account-based expenses as well
@@ -207,7 +206,6 @@ async function fetchAndStoreItems(
             name: line.Description || 'Unnamed Expense',
             category: line.AccountBasedExpenseLineDetail.AccountRef?.name || null,
             lastPaidPrice: line.Amount || 0,
-            date: purchase.TxnDate ? new Date(purchase.TxnDate) : new Date(),
           });
         }
       }

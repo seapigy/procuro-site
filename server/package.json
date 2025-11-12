@@ -16,11 +16,12 @@
     "@prisma/client": "^6.19.0",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "intuit-oauth": "^4.1.1",
-    "paapi5-nodejs-sdk": "^1.0.0",
-    "crypto-js": "^4.2.0"
+    "node-fetch": "^2.7.0",
+    "paapi5-nodejs-sdk": "^1.0.0"
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
