@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "app": {
+    "name": "Procuro",
+    "description": "Save money on what you already buy — automated price tracking for QuickBooks users",
+    "port": 5000
+  },
+  "scheduling": {
+    "priceCheckTime": "03:00",
+    "priceCheckCron": "0 3 * * *",
+    "tokenRefreshTime": "02:00",
+    "tokenRefreshCron": "0 2 * * *"
+  },
+  "pricing": {
+    "priceDropThreshold": 0.05,
+    "minimumSavingsAmount": 0.50,
+    "maxRetailers": 5
+  },
+  "alerts": {
+    "maxAlertsPerItem": 10,
+    "alertRetentionDays": 90
+  },
+  "security": {
+    "tokenExpiration": 3600,
+    "refreshTokenExpiration": 8035200
+  },
+  "features": {
+    "enableDailyPriceCheck": true,
+    "enableTokenRefresh": true,
+    "enableEmailNotifications": false
+  }
+}
+

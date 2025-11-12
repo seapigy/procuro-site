@@ -10,16 +10,22 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "mockdata": "tsx scripts/loadMockData.ts",
+    "test": "jest"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@types/morgan": "^1.9.10",
+    "@types/node-cron": "^3.0.11",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "intuit-oauth": "^4.1.1",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
     "paapi5-nodejs-sdk": "^1.0.0"
   },
