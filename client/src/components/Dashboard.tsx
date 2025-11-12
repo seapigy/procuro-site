@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Package, Bell, ShoppingCart, AlertCircle, ExternalLink, TrendingUp, DollarSign, Target } from 'lucide-react';
+import { Package, Bell, ShoppingCart, AlertCircle, ExternalLink, TrendingUp, DollarSign, Target, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { ThemeToggle } from './theme-toggle';
+import { LoadingState } from './ui/spinner';
+import { EmptyState } from './ui/empty-state';
 
 interface Item {
   id: number;
@@ -198,19 +200,23 @@ export function Dashboard() {
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="text-sm text-muted-foreground">Loading...</div>
+                  <LoadingState text="Loading items..." />
                 ) : items.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">
-                    No items tracked yet.
+                  <div className="py-8">
+                    <EmptyState
+                      icon={Package}
+                      title="No items yet"
+                      description="Connect your QuickBooks account to start tracking items and finding savings."
+                    />
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {items.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-lg border p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                        className="rounded-lg border p-3 hover:bg-accent/50 transition-all cursor-pointer group"
                       >
-                        <div className="font-medium text-sm line-clamp-2 mb-1">
+                        <div className="font-medium text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
                           {item.name}
                         </div>
                         {item.category && (
@@ -222,8 +228,9 @@ export function Dashboard() {
                           {formatPrice(item.lastPaidPrice)}
                         </div>
                         {item.prices && item.prices.length > 0 && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            {item.prices.length} price point{item.prices.length !== 1 ? 's' : ''}
+                          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{item.prices.length} price point{item.prices.length !== 1 ? 's' : ''}</span>
+                            <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         )}
                       </div>
@@ -256,15 +263,13 @@ export function Dashboard() {
                   
                   <TabsContent value="overview" className="space-y-4">
                     {loading ? (
-                      <div className="text-sm text-muted-foreground">Loading...</div>
+                      <LoadingState text="Loading alerts..." />
                     ) : alerts.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="font-semibold text-lg mb-2">No alerts yet</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">
-                          Price alerts will appear here when tracked items have significant price changes.
-                        </p>
-                      </div>
+                      <EmptyState
+                        icon={Bell}
+                        title="No alerts yet"
+                        description="Price alerts will appear here when tracked items have significant price changes. We monitor prices daily across major retailers."
+                      />
                     ) : (
                       <div className="space-y-4">
                         {alerts.slice(0, 5).map((alert) => (
@@ -310,15 +315,13 @@ export function Dashboard() {
                   
                   <TabsContent value="alerts">
                     {loading ? (
-                      <div className="text-sm text-muted-foreground py-8 text-center">Loading...</div>
+                      <LoadingState text="Loading alerts..." />
                     ) : alerts.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="font-semibold text-lg mb-2">No alerts yet</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">
-                          Price alerts will appear here when tracked items have better prices available.
-                        </p>
-                      </div>
+                      <EmptyState
+                        icon={Bell}
+                        title="No alerts yet"
+                        description="Price alerts will appear here when tracked items have better prices available. We check prices from Amazon, Walmart, and other major retailers."
+                      />
                     ) : (
                       <div className="rounded-md border">
                         <Table>
@@ -390,67 +393,77 @@ export function Dashboard() {
                   
                   <TabsContent value="savings">
                     {savingsLoading ? (
-                      <div className="text-sm text-muted-foreground py-8 text-center">Loading savings data...</div>
+                      <LoadingState text="Calculating savings..." />
                     ) : !savingsSummary ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="font-semibold text-lg mb-2">No savings data available</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">
-                          Savings data will appear once items are tracked and price alerts are created.
-                        </p>
-                      </div>
+                      <EmptyState
+                        icon={DollarSign}
+                        title="No savings data available"
+                        description="Savings data will appear once items are tracked and price alerts are created. Connect QuickBooks to get started."
+                      />
                     ) : (
                       <div className="space-y-6">
                         {/* Main Savings Card - Largest */}
-                        <div className="rounded-lg border-2 border-primary bg-primary/5 p-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="h-5 w-5 text-primary" />
-                            <h3 className="text-sm font-medium text-muted-foreground">Estimated Monthly Savings</h3>
+                        <div className="rounded-lg border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10 p-8 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="rounded-full bg-primary/10 p-2">
+                              <TrendingUp className="h-5 w-5 text-primary" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Estimated Monthly Savings</h3>
                           </div>
-                          <div className="text-5xl font-bold text-primary mb-2">
+                          <div className="text-6xl font-bold text-primary mb-3">
                             {formatPrice(savingsSummary.totalMonthlySavings)}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Based on {savingsSummary.alertsThisMonth} price {savingsSummary.alertsThisMonth === 1 ? 'alert' : 'alerts'} this month
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                              <ArrowUpRight className="h-3 w-3" />
+                              {savingsSummary.alertsThisMonth} {savingsSummary.alertsThisMonth === 1 ? 'alert' : 'alerts'}
+                            </span>
+                            found this month
                           </p>
                         </div>
 
                         {/* Summary Cards Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* Annual Savings */}
-                          <div className="rounded-lg border p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
-                              <h3 className="text-xs font-medium text-muted-foreground">Annual Savings</h3>
+                          <div className="rounded-lg border bg-card p-5 hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="rounded-full bg-green-100 p-2">
+                                <DollarSign className="h-4 w-4 text-green-600" />
+                              </div>
+                              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Annual Savings</h3>
                             </div>
-                            <div className="text-2xl font-bold text-green-600 dark:text-green-500">
+                            <div className="text-3xl font-bold text-green-600">
                               {formatPrice(savingsSummary.estimatedAnnualSavings)}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Projected yearly</p>
+                            <p className="text-xs text-muted-foreground mt-2">Projected yearly savings</p>
                           </div>
 
                           {/* Items Monitored */}
-                          <div className="rounded-lg border p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              <h3 className="text-xs font-medium text-muted-foreground">Items Monitored</h3>
+                          <div className="rounded-lg border bg-card p-5 hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="rounded-full bg-blue-100 p-2">
+                                <Package className="h-4 w-4 text-primary" />
+                              </div>
+                              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Items Monitored</h3>
                             </div>
-                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            <div className="text-3xl font-bold text-primary">
                               {savingsSummary.totalItemsMonitored}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Total tracked items</p>
+                            <p className="text-xs text-muted-foreground mt-2">Total tracked items</p>
                           </div>
 
                           {/* Alerts This Month */}
-                          <div className="rounded-lg border p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Bell className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                              <h3 className="text-xs font-medium text-muted-foreground">Alerts Found</h3>
+                          <div className="rounded-lg border bg-card p-5 hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="rounded-full bg-orange-100 p-2">
+                                <Bell className="h-4 w-4 text-orange-600" />
+                              </div>
+                              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Alerts Found</h3>
                             </div>
-                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                            <div className="text-3xl font-bold text-orange-600">
                               {savingsSummary.alertsThisMonth}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+                            <p className="text-xs text-muted-foreground mt-2">Last 30 days</p>
                           </div>
                         </div>
 
@@ -556,37 +569,37 @@ export function Dashboard() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-8 pt-6 border-t text-center text-sm text-muted-foreground">
-          <div className="flex items-center justify-center gap-4">
+        <footer className="mt-12 pt-6 border-t text-center text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-4 mb-3">
             <a 
               href="/support" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
+              className="hover:text-primary transition-colors font-medium"
             >
               Support
             </a>
-            <span>•</span>
+            <span className="text-border">•</span>
             <a 
               href="/privacy" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
+              className="hover:text-primary transition-colors font-medium"
             >
               Privacy Policy
             </a>
-            <span>•</span>
+            <span className="text-border">•</span>
             <a 
               href="/terms" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
+              className="hover:text-primary transition-colors font-medium"
             >
               Terms of Use
             </a>
           </div>
-          <div className="mt-2 text-xs">
-            © 2025 Procuro. All rights reserved.
+          <div className="text-xs text-muted-foreground/80">
+            © 2025 Procuro. All rights reserved. | Last synced with QuickBooks: {new Date().toLocaleString()}
           </div>
         </footer>
       </div>
