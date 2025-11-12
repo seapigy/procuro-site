@@ -11,18 +11,37 @@ import prisma from './lib/prisma';
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Create or update test user
-  const testUser = await prisma.user.upsert({
-    where: { email: 'test@procuroapp.com' },
+  // Create or update test company
+  const testCompany = await prisma.company.upsert({
+    where: { realmId: 'test-realm-123' },
     update: {},
     create: {
-      email: 'test@procuroapp.com',
-      name: 'Test User',
+      realmId: 'test-realm-123',
+      name: 'Test Company Inc.',
     },
   });
 
+  console.log('✅ Test company created/verified:', testCompany.name);
+  console.log('   Company ID:', testCompany.id);
+  console.log('   Realm ID:', testCompany.realmId);
+
+  // Create or update test user and link to company
+  const testUser = await prisma.user.upsert({
+    where: { email: 'test@procuroapp.com' },
+    update: {
+      companyId: testCompany.id,
+    },
+    create: {
+      email: 'test@procuroapp.com',
+      name: 'Test User',
+      companyId: testCompany.id,
+    },
+  });
+
+  console.log('');
   console.log('✅ Test user created/verified:', testUser.email);
   console.log('   User ID:', testUser.id);
+  console.log('   Company ID:', testUser.companyId);
 
   // Delete existing items for clean seed
   await prisma.item.deleteMany({

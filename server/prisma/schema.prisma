@@ -16,12 +16,27 @@ datasource db {
 //   url      = env("DATABASE_URL")
 // }
 
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  realmId   String   @unique
+  createdAt DateTime @default(now())
+
+  users User[]
+
+  @@index([realmId])
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Company relationship
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // QuickBooks integration
   quickbooksId           String?
@@ -31,9 +46,11 @@ model User {
   quickbooksConnectedAt  DateTime?
   onboardingCompleted    Boolean  @default(false)
 
-  items           Item[]
-  alerts          Alert[]
-  savingsSummary  SavingsSummary[]
+  items          Item[]
+  alerts         Alert[]
+  savingsSummary SavingsSummary[]
+
+  @@index([companyId])
 }
 
 model Item {

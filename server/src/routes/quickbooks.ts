@@ -54,6 +54,52 @@ router.get('/callback', async (req: Request, res: Response) => {
     // Extract realm ID (company ID)
     const realmId = oauthClient.getToken().realmId;
 
+    // Fetch company info from QuickBooks API (optional, for company name)
+    let companyName = null;
+    try {
+      const apiUrl = process.env.QUICKBOOKS_ENVIRONMENT === 'production'
+        ? 'https://quickbooks.api.intuit.com'
+        : 'https://sandbox-quickbooks.api.intuit.com';
+      
+      const companyInfoResponse = await axios.get(
+        `${apiUrl}/v3/company/${realmId}/companyinfo/${realmId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token.access_token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+      companyName = companyInfoResponse.data?.CompanyInfo?.CompanyName || null;
+    } catch (error) {
+      console.warn('Could not fetch company name, using realmId');
+      companyName = `Company ${realmId}`;
+    }
+
+    // Find or create company
+    let company = await prisma.company.findUnique({
+      where: { realmId: realmId },
+    });
+
+    if (!company) {
+      company = await prisma.company.create({
+        data: {
+          realmId: realmId,
+          name: companyName,
+        },
+      });
+      console.log(`✅ Created new company: ${company.name} (${company.realmId})`);
+    } else {
+      // Update company name if we got a new one
+      if (companyName && company.name !== companyName) {
+        company = await prisma.company.update({
+          where: { id: company.id },
+          data: { name: companyName },
+        });
+      }
+      console.log(`✅ Found existing company: ${company.name} (${company.realmId})`);
+    }
+
     // For this implementation, we'll use a test user
     // In production, you'd get the actual user from session/auth
     let user = await prisma.user.findFirst({
@@ -66,20 +112,24 @@ router.get('/callback', async (req: Request, res: Response) => {
         data: {
           email: 'test@procuroapp.com',
           name: 'Test User',
+          companyId: company.id,
         },
       });
+      console.log(`✅ Created new user: ${user.email}`);
+    } else {
+      // Update user with company and QuickBooks tokens
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          companyId: company.id,
+          quickbooksAccessToken: token.access_token,
+          quickbooksRefreshToken: token.refresh_token,
+          quickbooksRealmId: realmId,
+          quickbooksConnectedAt: new Date(),
+        },
+      });
+      console.log(`✅ Updated user: ${user.email} → linked to company ${company.name}`);
     }
-
-    // Update user with QuickBooks tokens
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        quickbooksAccessToken: token.access_token,
-        quickbooksRefreshToken: token.refresh_token,
-        quickbooksRealmId: realmId,
-        quickbooksConnectedAt: new Date(),
-      },
-    });
 
     // Fetch and store purchase items
     await fetchAndStoreItems(user.id, token.access_token, realmId);
@@ -88,6 +138,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       <html>
         <body>
           <h1>✅ QuickBooks Connected Successfully!</h1>
+          <p>Company: ${company.name}</p>
           <p>Realm ID: ${realmId}</p>
           <p>User: ${user.email}</p>
           <p><a href="http://localhost:5173">Return to Dashboard</a></p>
