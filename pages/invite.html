@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Team - Procuro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 32px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 24px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      color: #1a202c;
+      margin-bottom: 16px;
+    }
+    
+    .company-name {
+      font-size: 24px;
+      color: #667eea;
+      font-weight: 600;
+      margin: 20px 0;
+      padding: 16px;
+      background: #f7fafc;
+      border-radius: 8px;
+    }
+    
+    .description {
+      color: #4a5568;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    
+    .connect-button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .connect-button:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .connect-button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .error {
+      background: #fed7d7;
+      color: #c53030;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    
+    .loading {
+      color: #667eea;
+      font-size: 16px;
+      margin: 20px 0;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .expires {
+      color: #718096;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+    
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      color: #718096;
+      font-size: 14px;
+    }
+    
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Procuro</div>
+    
+    <div id="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p class="loading">Validating invite...</p>
+    </div>
+    
+    <div id="content" style="display: none;">
+      <div class="icon">👋</div>
+      <h1>You've Been Invited!</h1>
+      <p class="description">
+        You've been invited to join your team on Procuro
+      </p>
+      <div class="company-name" id="companyName"></div>
+      <p class="description">
+        Connect with your QuickBooks account to start saving money on what you already buy.
+      </p>
+      <a href="#" id="connectButton" class="connect-button">
+        Connect with QuickBooks
+      </a>
+      <p class="expires" id="expiresText"></p>
+    </div>
+    
+    <div id="error" style="display: none;">
+      <div class="icon">❌</div>
+      <h1>Invalid Invite</h1>
+      <div class="error" id="errorMessage"></div>
+      <p class="description">
+        Please contact your team administrator for a new invite link.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p>&copy; 2025 Procuro. All rights reserved.</p>
+      <p><a href="/privacy" style="color: #667eea;">Privacy</a> • <a href="/terms" style="color: #667eea;">Terms</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Extract token from URL
+    const urlParts = window.location.pathname.split('/');
+    const token = urlParts[urlParts.length - 1];
+
+    if (!token || token === 'invite') {
+      showError('No invite token provided in URL.');
+    } else {
+      validateInvite(token);
+    }
+
+    async function validateInvite(token) {
+      document.getElementById('loading').style.display = 'block';
+      
+      try {
+        const response = await fetch(`/api/invite/${token}`);
+        const data = await response.json();
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        if (response.ok && data.valid) {
+          // Show success content
+          document.getElementById('content').style.display = 'block';
+          document.getElementById('companyName').textContent = data.companyName || 'Your Team';
+          
+          // Format expiration date
+          const expiresDate = new Date(data.expiresAt);
+          const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
+          document.getElementById('expiresText').textContent = 
+            `This invite expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+          
+          // Set up connect button
+          const connectButton = document.getElementById('connectButton');
+          connectButton.href = `/api/qb/connect?inviteToken=${token}`;
+        } else {
+          showError(data.message || data.error || 'Invalid invite link');
+        }
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        showError('Failed to validate invite. Please try again.');
+        console.error('Error:', error);
+      }
+    }
+
+    function showError(message) {
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('errorMessage').textContent = message;
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invite Team Members - Procuro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7fafc;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    button:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result {
+      background: #f7fafc;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 24px;
+      margin-top: 24px;
+      display: none;
+    }
+    
+    .result.show {
+      display: block;
+    }
+    
+    .invite-url {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      word-break: break-all;
+      margin: 16px 0;
+    }
+    
+    .copy-button {
+      background: #48bb78;
+      margin-top: 8px;
+    }
+    
+    .copy-button:hover {
+      background: #38a169;
+    }
+    
+    .success {
+      color: #38a169;
+      font-weight: 600;
+      margin-top: 12px;
+      display: none;
+    }
+    
+    .success.show {
+      display: block;
+    }
+    
+    .error {
+      background: #fed7d7;
+      color: #c53030;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+    }
+    
+    .error.show {
+      display: block;
+    }
+    
+    .info-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 16px;
+      border-radius: 4px;
+      margin: 24px 0;
+    }
+    
+    .info-box h3 {
+      color: #2c5282;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .info-box p {
+      color: #2d3748;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .expires-info {
+      color: #718096;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    
+    .back-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 24px;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to Dashboard</a>
+    
+    <h1>Invite Team Members</h1>
+    <p class="subtitle">Generate a secure invite link to add team members to your company</p>
+    
+    <div class="info-box">
+      <h3>How it works:</h3>
+      <p>
+        1. Generate a secure invite link below<br>
+        2. Share the link with your team member<br>
+        3. They'll connect their QuickBooks account<br>
+        4. They'll be added to your company automatically
+      </p>
+    </div>
+    
+    <div class="section">
+      <label for="userId">Your User ID</label>
+      <input 
+        type="number" 
+        id="userId" 
+        placeholder="e.g., 1" 
+        value="1"
+      >
+      <p style="font-size: 14px; color: #718096; margin-top: -8px;">
+        Enter your user ID (found in your profile settings)
+      </p>
+    </div>
+    
+    <button id="generateButton" onclick="generateInvite()">
+      Generate Invite Link
+    </button>
+    
+    <div id="error" class="error"></div>
+    
+    <div id="result" class="result">
+      <h2 style="color: #667eea; margin-bottom: 16px;">✅ Invite Link Generated!</h2>
+      <p><strong>Share this link with your team member:</strong></p>
+      <div class="invite-url" id="inviteUrl"></div>
+      <button class="copy-button" onclick="copyToClipboard()">
+        📋 Copy to Clipboard
+      </button>
+      <div class="success" id="copySuccess">✓ Copied to clipboard!</div>
+      <p class="expires-info" id="expiresInfo"></p>
+    </div>
+  </div>
+
+  <script>
+    async function generateInvite() {
+      const userId = document.getElementById('userId').value;
+      const button = document.getElementById('generateButton');
+      const resultDiv = document.getElementById('result');
+      const errorDiv = document.getElementById('error');
+      
+      // Reset displays
+      resultDiv.classList.remove('show');
+      errorDiv.classList.remove('show');
+      document.getElementById('copySuccess').classList.remove('show');
+      
+      if (!userId) {
+        errorDiv.textContent = 'Please enter your User ID';
+        errorDiv.classList.add('show');
+        return;
+      }
+      
+      button.disabled = true;
+      button.textContent = 'Generating...';
+      
+      try {
+        const response = await fetch('/api/company/invite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: parseInt(userId) }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          document.getElementById('inviteUrl').textContent = data.inviteUrl;
+          
+          // Calculate days until expiration
+          const expiresDate = new Date(data.expiresAt);
+          const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
+          
+          let expiresText = `This link expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresDate.toLocaleDateString()})`;
+          if (data.reused) {
+            expiresText = '♻️ Reused existing valid invite. ' + expiresText;
+          }
+          
+          document.getElementById('expiresInfo').textContent = expiresText;
+          resultDiv.classList.add('show');
+        } else {
+          errorDiv.textContent = data.error || 'Failed to generate invite link';
+          errorDiv.classList.add('show');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.add('show');
+        console.error('Error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Generate Invite Link';
+      }
+    }
+    
+    function copyToClipboard() {
+      const url = document.getElementById('inviteUrl').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        const successDiv = document.getElementById('copySuccess');
+        successDiv.classList.add('show');
+        setTimeout(() => {
+          successDiv.classList.remove('show');
+        }, 3000);
+      });
+    }
+  </script>
+</body>
+</html>
+

@@ -7,6 +7,7 @@ import quickbooksRoutes from './routes/quickbooks';
 import itemsRoutes from './routes/items';
 import alertsRoutes from './routes/alerts';
 import savingsRoutes from './routes/savings';
+import invitesRoutes from './routes/invites';
 import { runDailyPriceCheck } from '../../jobs/dailyCheck';
 
 // Load environment variables
@@ -88,12 +89,23 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../landing/index.html'));
 });
 
+// Serve invite page
+app.get('/invite/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../pages/invite.html'));
+});
+
+// Serve invite admin page
+app.get('/dashboard/company/invite', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../pages/invite-admin.html'));
+});
+
 // API routes (public, but authenticated)
 app.use('/api', apiRoutes);
 app.use('/api/qb', quickbooksRoutes);
 app.use('/api/items', itemsRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api', savingsRoutes);
+app.use('/api', invitesRoutes);
 
 // Start server
 app.listen(PORT, () => {

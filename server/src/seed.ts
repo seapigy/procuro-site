@@ -219,17 +219,43 @@ async function main() {
   console.log(`   ✓ ${item2.name} → Staples ($22.50)`);
   console.log(`   ✓ ${item3.name} → Walmart ($7.50)`);
   
+  // Create a sample invite
+  console.log('');
+  console.log('🔗 Creating sample invite...');
+  
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+  
+  const invite = await prisma.invite.upsert({
+    where: { token: 'procuro-invite-demo' },
+    update: {},
+    create: {
+      companyId: testCompany.id,
+      token: 'procuro-invite-demo',
+      expiresAt,
+      used: false,
+    },
+  });
+  
+  console.log(`   ✓ Sample invite created: procuro-invite-demo`);
+  console.log(`   ✓ Expires: ${expiresAt.toLocaleDateString()}`);
+  console.log(`   ✓ Invite URL: http://localhost:5173/invite/${invite.token}`);
+  
   console.log('');
   console.log('📊 Database seeded successfully!');
   console.log('');
   console.log('Summary:');
-  console.log('   • 1 User (test@procuroapp.com)');
+  console.log('   • 1 Company (Test Company Inc.)');
+  console.log('   • 2 Users (linked to company)');
   console.log('   • 3 Items with vendors and prices');
   console.log('   • 7 Price records from different retailers');
   console.log('   • 1 Alert for price drop');
-  console.log('   • 1 Savings summary record');
+  console.log('   • 2 Savings summary records');
+  console.log('   • 1 Invite link (demo)');
   console.log('');
   console.log('Next steps:');
+  console.log('👉 Generate invite link: http://localhost:5000/dashboard/company/invite');
+  console.log('👉 Test invite: http://localhost:5000/invite/procuro-invite-demo');
   console.log('👉 Connect to QuickBooks: http://localhost:5000/api/qb/connect');
   console.log('👉 View items: http://localhost:5000/api/qb/items');
   console.log('👉 Open Prisma Studio: npx prisma studio');

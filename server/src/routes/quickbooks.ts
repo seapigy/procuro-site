@@ -17,9 +17,17 @@ const oauthClient = new OAuthClient({
 /**
  * GET /api/qb/connect
  * Initiates the QuickBooks OAuth 2.0 flow
+ * Supports inviteToken parameter for joining existing companies
  */
 router.get('/connect', (req: Request, res: Response) => {
   try {
+    const { inviteToken } = req.query;
+    
+    // Store invite token in state if present
+    const state = inviteToken 
+      ? JSON.stringify({ inviteToken }) 
+      : 'testState';
+    
     // Generate authorization URI
     const authUri = oauthClient.authorizeUri({
       scope: [
@@ -28,7 +36,7 @@ router.get('/connect', (req: Request, res: Response) => {
         OAuthClient.scopes.Profile,
         OAuthClient.scopes.Email,
       ],
-      state: 'testState', // In production, use a secure random state
+      state,
     });
 
     // Redirect user to QuickBooks authorization page
@@ -53,51 +61,96 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Extract realm ID (company ID)
     const realmId = oauthClient.getToken().realmId;
-
-    // Fetch company info from QuickBooks API (optional, for company name)
-    let companyName = null;
+    
+    // Extract state to check for invite token
+    const state = req.query.state as string;
+    let inviteToken: string | null = null;
+    
     try {
-      const apiUrl = process.env.QUICKBOOKS_ENVIRONMENT === 'production'
-        ? 'https://quickbooks.api.intuit.com'
-        : 'https://sandbox-quickbooks.api.intuit.com';
-      
-      const companyInfoResponse = await axios.get(
-        `${apiUrl}/v3/company/${realmId}/companyinfo/${realmId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token.access_token}`,
-            'Accept': 'application/json',
-          },
-        }
-      );
-      companyName = companyInfoResponse.data?.CompanyInfo?.CompanyName || null;
-    } catch (error) {
-      console.warn('Could not fetch company name, using realmId');
-      companyName = `Company ${realmId}`;
+      if (state && state !== 'testState') {
+        const stateData = JSON.parse(state);
+        inviteToken = stateData.inviteToken || null;
+      }
+    } catch (e) {
+      // State is not JSON, ignore
     }
 
-    // Find or create company
-    let company = await prisma.company.findUnique({
-      where: { realmId: realmId },
-    });
-
-    if (!company) {
-      company = await prisma.company.create({
-        data: {
-          realmId: realmId,
-          name: companyName,
-        },
+    // If invite token present, validate and use it
+    let invitedCompany = null;
+    if (inviteToken) {
+      const invite = await prisma.invite.findUnique({
+        where: { token: inviteToken },
+        include: { company: true },
       });
-      console.log(`✅ Created new company: ${company.name} (${company.realmId})`);
-    } else {
-      // Update company name if we got a new one
-      if (companyName && company.name !== companyName) {
-        company = await prisma.company.update({
-          where: { id: company.id },
-          data: { name: companyName },
+
+      if (invite && !invite.used && new Date() < invite.expiresAt) {
+        invitedCompany = invite.company;
+        console.log(`✅ Valid invite found for: ${invitedCompany.name}`);
+        
+        // Mark invite as used
+        await prisma.invite.update({
+          where: { id: invite.id },
+          data: { used: true },
         });
+        console.log(`✅ Invite marked as used: ${inviteToken}`);
+      } else {
+        console.warn(`⚠️ Invalid or expired invite: ${inviteToken}`);
       }
-      console.log(`✅ Found existing company: ${company.name} (${company.realmId})`);
+    }
+
+    // Determine company to use
+    let company;
+    
+    if (invitedCompany) {
+      // Use the company from the invite
+      company = invitedCompany;
+      console.log(`✅ Using invited company: ${company.name}`);
+    } else {
+      // Normal flow: fetch company info from QuickBooks API
+      let companyName = null;
+      try {
+        const apiUrl = process.env.QUICKBOOKS_ENVIRONMENT === 'production'
+          ? 'https://quickbooks.api.intuit.com'
+          : 'https://sandbox-quickbooks.api.intuit.com';
+        
+        const companyInfoResponse = await axios.get(
+          `${apiUrl}/v3/company/${realmId}/companyinfo/${realmId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token.access_token}`,
+              'Accept': 'application/json',
+            },
+          }
+        );
+        companyName = companyInfoResponse.data?.CompanyInfo?.CompanyName || null;
+      } catch (error) {
+        console.warn('Could not fetch company name, using realmId');
+        companyName = `Company ${realmId}`;
+      }
+
+      // Find or create company
+      company = await prisma.company.findUnique({
+        where: { realmId: realmId },
+      });
+
+      if (!company) {
+        company = await prisma.company.create({
+          data: {
+            realmId: realmId,
+            name: companyName,
+          },
+        });
+        console.log(`✅ Created new company: ${company.name} (${company.realmId})`);
+      } else {
+        // Update company name if we got a new one
+        if (companyName && company.name !== companyName) {
+          company = await prisma.company.update({
+            where: { id: company.id },
+            data: { name: companyName },
+          });
+        }
+        console.log(`✅ Found existing company: ${company.name} (${company.realmId})`);
+      }
     }
 
     // For this implementation, we'll use a test user
@@ -138,6 +191,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       <html>
         <body>
           <h1>✅ QuickBooks Connected Successfully!</h1>
+          ${inviteToken ? '<p><strong>You joined via invite link!</strong></p>' : ''}
           <p>Company: ${company.name}</p>
           <p>Realm ID: ${realmId}</p>
           <p>User: ${user.email}</p>
