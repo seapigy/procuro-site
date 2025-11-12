@@ -161,4 +161,88 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/items/:id
+ * Update item details (inline editing)
+ */
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const itemId = parseInt(req.params.id);
+    const { name, vendorName, sku, category, lastPaidPrice, quantityPerOrder, reorderIntervalDays } = req.body;
+
+    // Validate item exists
+    const existingItem = await prisma.item.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // Build update data object (only include provided fields)
+    const updateData: any = {};
+    
+    if (name !== undefined) {
+      if (name.trim() === '') {
+        return res.status(400).json({ error: 'Name cannot be empty' });
+      }
+      updateData.name = name.trim();
+    }
+    
+    if (vendorName !== undefined) updateData.vendorName = vendorName?.trim() || null;
+    if (sku !== undefined) updateData.sku = sku?.trim() || null;
+    if (category !== undefined) updateData.category = category?.trim() || null;
+    
+    if (lastPaidPrice !== undefined) {
+      const price = parseFloat(lastPaidPrice);
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({ error: 'Invalid price value' });
+      }
+      updateData.lastPaidPrice = price;
+    }
+    
+    if (quantityPerOrder !== undefined) {
+      const qty = parseInt(quantityPerOrder);
+      if (isNaN(qty) || qty < 1) {
+        return res.status(400).json({ error: 'Quantity must be at least 1' });
+      }
+      updateData.quantityPerOrder = qty;
+    }
+    
+    if (reorderIntervalDays !== undefined) {
+      const days = parseInt(reorderIntervalDays);
+      if (isNaN(days) || days < 1) {
+        return res.status(400).json({ error: 'Reorder interval must be at least 1 day' });
+      }
+      updateData.reorderIntervalDays = days;
+    }
+
+    // Update the item
+    const updatedItem = await prisma.item.update({
+      where: { id: itemId },
+      data: updateData,
+      include: {
+        prices: {
+          orderBy: { date: 'desc' },
+          take: 5
+        }
+      }
+    });
+
+    console.log(`✅ Item updated: ${updatedItem.name} (ID: ${itemId})`);
+
+    res.json({
+      success: true,
+      item: updatedItem,
+      message: 'Item updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating item:', error);
+    res.status(500).json({ 
+      error: 'Failed to update item',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

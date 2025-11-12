@@ -60,6 +60,21 @@ export function Reports() {
     }
   };
 
+  // Calculate vendor savings
+  const vendorSavings = alerts.reduce((acc, alert) => {
+    const vendor = alert.retailer;
+    if (!acc[vendor]) {
+      acc[vendor] = 0;
+    }
+    acc[vendor] += alert.estimatedMonthlySavings;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topVendors = Object.entries(vendorSavings)
+    .map(([name, savings]) => ({ name, savings }))
+    .sort((a, b) => b.savings - a.savings)
+    .slice(0, 5);
+
   const exportToCSV = () => {
     if (alerts.length === 0) {
       alert('No data to export');
@@ -225,6 +240,48 @@ export function Reports() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Top Vendors Chart */}
+      {topVendors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Top Vendors by Savings
+            </CardTitle>
+            <CardDescription>Which retailers offer the best prices</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topVendors.map((vendor, index) => {
+                const maxSavings = topVendors[0].savings;
+                const percentage = (vendor.savings / maxSavings) * 100;
+                return (
+                  <div key={vendor.name} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                          {index + 1}
+                        </span>
+                        <span className="font-medium">{vendor.name}</span>
+                      </div>
+                      <span className="font-bold text-green-600">
+                        ${vendor.savings.toFixed(2)}/mo
+                      </span>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary to-green-600 transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Savings Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

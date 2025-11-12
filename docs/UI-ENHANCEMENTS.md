@@ -751,6 +751,176 @@ const handleSave = async () => {
 Contact: support@procuroapp.com
 
 **Last Updated:** November 12, 2025  
-**Document Version:** 1.0.0
+**Document Version:** 1.1.0 (with Optional Add-ons)
+
+---
+
+## 🎁 OPTIONAL LOCAL ADD-ONS (v1.1)
+
+### Recently Added Features
+
+1. **Inline Editing** - Edit items directly in table
+2. **Quick Search** - Real-time filtering
+3. **Top Vendors Chart** - Retailer analytics
+4. **Auto-Check Toggle** - Control cron jobs
+5. **Database Backup** - Export SQLite locally
+
+---
+
+### Inline Editing Component
+
+**File:** `client/src/components/Items.tsx`
+
+**Features:**
+- Click-to-edit table cells
+- Save/Cancel buttons
+- Input validation
+- Success feedback (green highlight)
+- Error handling
+
+**Usage:**
+```tsx
+<Items />
+```
+
+**Implementation:**
+- Maintains `editingId` state
+- Converts cells to `<input>` elements
+- PATCH request to `/api/items/:id`
+- Updates local state on success
+- Visual feedback with CSS transition
+
+---
+
+### Search/Filter Bar
+
+**File:** `client/src/components/Items.tsx`
+
+**Features:**
+- Real-time client-side filtering
+- Searches: name, vendor, SKU, category
+- Clear button (X icon)
+- Persists last search (localStorage)
+- Case-insensitive matching
+
+**UI Elements:**
+```tsx
+<div className="relative">
+  <Search className="..." />
+  <input
+    type="search"
+    placeholder="Search by name, vendor, SKU, or category..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+  {searchQuery && <X onClick={clearSearch} />}
+</div>
+```
+
+---
+
+### Top Vendors Chart
+
+**File:** `client/src/components/Reports.tsx`
+
+**Visualization:**
+- Horizontal bar chart
+- Top 5 vendors
+- Gradient bars (primary → green)
+- Savings amount displayed
+- Responsive design
+
+**Data Processing:**
+```tsx
+const vendorSavings = alerts.reduce((acc, alert) => {
+  acc[alert.retailer] = (acc[alert.retailer] || 0) + alert.estimatedMonthlySavings;
+  return acc;
+}, {});
+
+const topVendors = Object.entries(vendorSavings)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
+```
+
+**Chart Element:**
+```tsx
+<div className="h-3 bg-muted rounded-full">
+  <div 
+    className="h-full bg-gradient-to-r from-primary to-green-600"
+    style={{ width: `${percentage}%` }}
+  />
+</div>
+```
+
+---
+
+### Auto-Check Toggle
+
+**File:** `client/src/components/Settings.tsx`
+
+**Component:**
+- Toggle switch (styled with Tailwind)
+- Saves to localStorage
+- Default: enabled (true)
+- Visual feedback (gray/green)
+
+**Toggle Implementation:**
+```tsx
+<input
+  type="checkbox"
+  checked={settings.autoCheckEnabled}
+  onChange={(e) => setSettings({
+    ...settings,
+    autoCheckEnabled: e.target.checked
+  })}
+  className="sr-only peer"
+/>
+<div className="w-11 h-6 peer-checked:bg-primary ...">
+  {/* Toggle slider */}
+</div>
+```
+
+---
+
+### Database Backup Button
+
+**File:** `client/src/components/Settings.tsx`
+
+**Features:**
+- Download button
+- Loading state ("Downloading...")
+- Success feedback
+- Error handling
+- Timestamped filename
+
+**Download Function:**
+```tsx
+const handleBackup = async () => {
+  const response = await fetch('http://localhost:5000/api/backup');
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `procuro-backup-${timestamp}.sqlite`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+```
+
+---
+
+### Testing Verification
+
+All features tested and verified:
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Inline Editing | ✅ | Validation working, UI smooth |
+| Search Filter | ✅ | Instant filtering, persists |
+| Vendor Chart | ✅ | Accurate data, responsive |
+| Auto-Check Toggle | ✅ | Saves preference, integrates with cron |
+| Database Backup | ✅ | Downloads correctly, file integrity verified |
+
+---
 
 

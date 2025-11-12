@@ -710,6 +710,129 @@ npm run mockdata
 Contact: support@procuroapp.com
 
 **Last Updated:** November 12, 2025  
-**Document Version:** 1.0.0
+**Document Version:** 1.1.0 (with Optional Add-ons)
+
+---
+
+## 🎁 OPTIONAL LOCAL ADD-ONS (v1.1)
+
+### New Features Added
+
+1. **Inline Editing for Items** - Edit item details directly in table
+2. **Quick Search/Filter** - Real-time client-side filtering
+3. **Top Vendors Chart** - Analytics showing best retailers
+4. **Auto-Check Toggle** - Control automatic price checks
+5. **Database Backup** - Download local SQLite file
+
+---
+
+### 1️⃣ Inline Editing
+
+**Location:** Items page (`/dashboard/items`)
+
+**Usage:**
+- Click any editable field (name, vendor, SKU, category, price)
+- Field converts to input
+- Edit value
+- Click ✓ (save) or ✕ (cancel)
+- Row highlights green on successful save
+
+**API:** `PATCH /api/items/:id`
+
+**Features:**
+- Input validation
+- Real-time UI updates
+- Success feedback
+- Error handling
+
+---
+
+### 2️⃣ Quick Search
+
+**Location:** Items page (search bar above table)
+
+**Usage:**
+- Type in search field
+- Results filter instantly
+- Searches: name, vendor, SKU, category
+- Click ✕ to clear
+- Last search persists (localStorage)
+
+**No Backend Required:** Client-side filtering
+
+---
+
+### 3️⃣ Top Vendors Chart
+
+**Location:** Reports page
+
+**Display:**
+- Horizontal bar chart
+- Top 5 vendors by savings
+- Gradient bars (blue → green)
+- Savings amount per vendor
+- Auto-updates with new data
+
+**Data Source:** Aggregates alerts by retailer
+
+---
+
+### 4️⃣ Auto-Check Toggle
+
+**Location:** Settings modal
+
+**Purpose:** Enable/disable automatic daily price checks
+
+**Usage:**
+1. Open Settings (⚙️ icon)
+2. Find "Automatic Price Checking"
+3. Toggle switch ON/OFF
+4. Click "Save Settings"
+
+**Technical:**
+- Saves to localStorage
+- Cron worker checks config
+- If disabled, price checks skipped
+
+**Config:**
+```json
+{
+  "autoCheckEnabled": true/false
+}
+```
+
+---
+
+### 5️⃣ Database Backup
+
+**Location:** Settings modal → "Database Backup"
+
+**Usage:**
+1. Open Settings
+2. Scroll to "Database Backup"
+3. Click "Download Backup"
+4. File downloads: `procuro-backup-YYYY-MM-DD.sqlite`
+
+**API:** `GET /api/backup`
+
+**File Contents:**
+- All tables (Company, User, Item, Price, Alert, etc.)
+- Full database snapshot
+- Can be restored by replacing `db/procuro.db`
+
+**Restore Process:**
+```bash
+# Stop server first
+# Backup current DB
+mv db/procuro.db db/procuro.db.old
+
+# Copy downloaded backup
+cp ~/Downloads/procuro-backup-2025-11-12.sqlite db/procuro.db
+
+# Restart server
+npm run dev
+```
+
+---
 
 

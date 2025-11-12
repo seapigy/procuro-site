@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, X } from 'lucide-react';
+import { Settings as SettingsIcon, X, Download } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
@@ -7,17 +7,20 @@ interface SettingsConfig {
   notificationFrequency: 'daily' | 'weekly' | 'manual';
   minPriceDropPercent: number;
   theme: 'light' | 'dark' | 'system';
+  autoCheckEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: SettingsConfig = {
   notificationFrequency: 'daily',
   minPriceDropPercent: 5,
-  theme: 'system'
+  theme: 'system',
+  autoCheckEnabled: true
 };
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [settings, setSettings] = useState<SettingsConfig>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage
@@ -40,6 +43,37 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
     localStorage.removeItem('procuro-settings');
+  };
+
+  const handleBackup = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/backup');
+      
+      if (!response.ok) {
+        throw new Error('Failed to download backup');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().split('T')[0];
+      a.download = `procuro-backup-${timestamp}.sqlite`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // Show success message
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error('Error downloading backup:', error);
+      alert('Failed to download backup. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -169,6 +203,56 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                       <div className="font-medium">{option.label}</div>
                     </button>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Auto-Check Toggle */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Automatic Price Checking</CardTitle>
+                <CardDescription>Enable or disable daily automatic price checks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <label className="flex items-center justify-between p-4 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors">
+                  <div>
+                    <div className="font-medium">Enable automatic daily price checks</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      When enabled, prices are checked automatically at 3 AM daily
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={settings.autoCheckEnabled}
+                      onChange={(e) => setSettings({ ...settings, autoCheckEnabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </div>
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* Backup Database */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Database Backup</CardTitle>
+                <CardDescription>Download a copy of your local database</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Create a backup of your local SQLite database. This includes all items, prices, alerts, and settings.
+                  </p>
+                  <Button
+                    onClick={handleBackup}
+                    disabled={downloading}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {downloading ? 'Downloading...' : 'Download Backup'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

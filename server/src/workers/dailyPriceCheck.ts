@@ -15,6 +15,12 @@ export async function runDailyPriceCheck() {
     return;
   }
 
+  // Check if auto-check is enabled in config
+  if (!appConfig.features.enableDailyPriceCheck) {
+    console.log('⏸️  Daily price check disabled in config, skipping...');
+    return;
+  }
+
   isRunning = true;
   const startTime = new Date();
   console.log(`\n🔍 Starting daily price check at ${startTime.toISOString()}`);

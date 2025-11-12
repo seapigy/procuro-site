@@ -9,6 +9,7 @@ import itemsRoutes from './routes/items';
 import alertsRoutes from './routes/alerts';
 import savingsRoutes from './routes/savings';
 import invitesRoutes from './routes/invites';
+import backupRoutes from './routes/backup';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { prisma } from './prisma';
 import appConfig from '../../config/app.json';
@@ -134,6 +135,7 @@ app.use('/api/items', itemsRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api', savingsRoutes);
 app.use('/api', invitesRoutes);
+app.use('/api/backup', backupRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
