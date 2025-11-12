@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procuro for QuickBooks</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    /* Loading indicator */
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: #0077C5;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #0077C5;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Indicator -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading Procuro Dashboard...</p>
+  </div>
+
+  <!-- Main Dashboard iframe -->
+  <iframe 
+    id="procuro-iframe"
+    src="https://procuroapp.com/dashboard" 
+    allowfullscreen
+    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"
+  ></iframe>
+
+  <script>
+    (function() {
+      // Configuration
+      const DASHBOARD_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5173' 
+        : 'https://procuroapp.com/dashboard';
+
+      const iframe = document.getElementById('procuro-iframe');
+      const loading = document.getElementById('loading');
+
+      // Update iframe src based on environment
+      iframe.src = DASHBOARD_URL;
+
+      // Handle OAuth token from URL params (if QuickBooks passes it)
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const realmId = urlParams.get('realmId');
+
+      if (token) {
+        console.log('OAuth token detected:', token.substring(0, 10) + '...');
+        // Store token for API requests
+        sessionStorage.setItem('qbo_access_token', token);
+      }
+
+      if (realmId) {
+        console.log('QuickBooks Company ID:', realmId);
+        sessionStorage.setItem('qbo_realm_id', realmId);
+      }
+
+      // Pass OAuth info to iframe via postMessage once loaded
+      iframe.addEventListener('load', function() {
+        loading.classList.add('hidden');
+        
+        // Send OAuth credentials to iframe if available
+        if (token || realmId) {
+          iframe.contentWindow.postMessage({
+            type: 'QBO_AUTH',
+            token: token,
+            realmId: realmId
+          }, '*');
+        }
+
+        console.log('Procuro dashboard loaded successfully');
+      });
+
+      // Handle errors
+      window.addEventListener('error', function(e) {
+        console.error('Error loading Procuro:', e);
+      });
+
+      // Listen for messages from the iframe
+      window.addEventListener('message', function(event) {
+        // Verify origin in production
+        // if (event.origin !== 'https://procuroapp.com') return;
+
+        console.log('Message from iframe:', event.data);
+
+        // Handle any requests from the iframe
+        if (event.data.type === 'RESIZE') {
+          // Handle iframe resize requests if needed
+          console.log('Resize request:', event.data);
+        }
+      });
+
+      // Log that we're in QuickBooks embedded mode
+      console.log('Procuro running in QuickBooks Online embedded mode');
+      console.log('Environment:', window.location.hostname);
+    })();
+  </script>
+</body>
+</html>
+

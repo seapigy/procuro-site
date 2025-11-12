@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// For PostgreSQL (production):
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // QuickBooks integration
+  quickbooksAccessToken  String?
+  quickbooksRefreshToken String?
+  quickbooksRealmId      String?
+  quickbooksConnectedAt  DateTime?
+
+  items  Item[]
+  alerts Alert[]
+}
+
+model Item {
+  id                  Int      @id @default(autoincrement())
+  userId              Int
+  name                String
+  category            String?
+  lastPaidPrice       Float
+  quantityPerOrder    Int      @default(1)
+  reorderIntervalDays Int      @default(30)
+  upc                 String?
+  matchedRetailer     String?
+  matchedUrl          String?
+  matchedPrice        Float?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prices Price[]
+  alerts Alert[]
+
+  @@index([userId])
+}
+
+model Price {
+  id       Int      @id @default(autoincrement())
+  itemId   Int
+  retailer String
+  price    Float
+  date     DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([retailer])
+  @@index([date])
+}
+
+model Alert {
+  id                      Int      @id @default(autoincrement())
+  itemId                  Int
+  userId                  Int
+  retailer                String
+  newPrice                Float
+  oldPrice                Float
+  url                     String?
+  savingsPerOrder         Float
+  estimatedMonthlySavings Float
+  seen                    Boolean  @default(false)
+  alertDate               DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([userId])
+  @@index([alertDate])
+  @@index([seen])
+}

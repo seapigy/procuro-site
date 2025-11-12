@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Uncomment for SQLite (development):
+// datasource db {
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
+// }
+
+model User {
+  id     Int     @id @default(autoincrement())
+  email  String  @unique
+  name   String?
+  items  Item[]
+  alerts Alert[]
+}
+
+model Item {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  name          String
+  category      String?
+  lastPaidPrice Float
+  upc           String?
+  prices        Price[]
+  alerts        Alert[]
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Price {
+  id       Int      @id @default(autoincrement())
+  itemId   Int
+  retailer String
+  price    Float
+  date     DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  retailer  String
+  price     Float
+  alertDate DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+

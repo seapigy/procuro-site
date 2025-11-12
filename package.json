@@ -1,0 +1,29 @@
+{
+  "name": "procuro-app",
+  "version": "1.0.0",
+  "description": "QuickBooks-integrated price-monitoring SaaS",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=server && npm run build --workspace=client",
+    "start": "npm run start --workspace=server",
+    "install:all": "npm install && npm install --workspace=server && npm install --workspace=client"
+  },
+  "keywords": [
+    "price-monitoring",
+    "quickbooks",
+    "saas"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+
+
+
+
+

@@ -1,0 +1,18 @@
+{
+  "name": "Procuro",
+  "version": "1.0.0",
+  "description": "Save money on what you already buy — automated price tracking for QuickBooks users.",
+  "vendor": "Procuro",
+  "homepage": "https://procuroapp.com",
+  "launch_url": "https://procuroapp.com/qbo_embed/iframe-loader.html",
+  "scopes": [
+    "com.intuit.quickbooks.accounting",
+    "openid",
+    "profile",
+    "email"
+  ],
+  "redirect_uris": [
+    "https://procuroapp.com/oauth/callback"
+  ]
+}
+

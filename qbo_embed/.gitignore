@@ -1,0 +1,8 @@
+# Ignore any local test files
+test-results/
+*.log
+
+# Ignore any build artifacts if added later
+dist/
+build/
+

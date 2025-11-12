@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procuro QBO Embed - Local Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f4f5f8;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #0077C5;
+      margin-bottom: 10px;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    h2 {
+      color: #1a1a1a;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .test-item {
+      padding: 12px;
+      background: #f8f9fa;
+      border-left: 4px solid #0077C5;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    
+    .test-item strong {
+      color: #0077C5;
+    }
+    
+    button {
+      background: #0077C5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    
+    button:hover {
+      background: #005fa3;
+    }
+    
+    .iframe-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .iframe-wrapper {
+      border: 2px solid #dfe5eb;
+      border-radius: 4px;
+      overflow: hidden;
+      height: 600px;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    
+    .log {
+      background: #1a1a1a;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    
+    .log-entry {
+      margin-bottom: 5px;
+    }
+    
+    .log-time {
+      color: #888;
+    }
+    
+    a {
+      color: #0077C5;
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🧪 Procuro QBO Embed - Local Testing</h1>
+      <p style="color: #6b7280; margin-top: 10px;">
+        Test the QuickBooks Online embedded app locally before deployment
+      </p>
+      <div style="margin-top: 15px;">
+        <span class="status success">✓ Files Created</span>
+        <span class="status success">✓ iframe Ready</span>
+        <span class="status warning">⚠ Awaiting OAuth Test</span>
+      </div>
+    </div>
+
+    <!-- Test Instructions -->
+    <div class="test-section">
+      <h2>📋 Pre-Test Checklist</h2>
+      <div class="test-item">
+        <strong>1. Backend Running:</strong> 
+        <code>cd server && npm run dev</code> → http://localhost:5000
+      </div>
+      <div class="test-item">
+        <strong>2. Frontend Running:</strong> 
+        <code>cd client && npm run dev</code> → http://localhost:5173
+      </div>
+      <div class="test-item">
+        <strong>3. QBO Embed Served:</strong> 
+        <code>npx serve qbo_embed -p 3000</code> → http://localhost:3000
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="test-section">
+      <h2>🔗 Quick Test Links</h2>
+      <button onclick="testURL('http://localhost:3000/index.html')">Test index.html</button>
+      <button onclick="testURL('http://localhost:3000/iframe-loader.html')">Test iframe-loader.html</button>
+      <button onclick="testURL('http://localhost:5173')">Test Dashboard Direct</button>
+      <button onclick="testURL('http://localhost:5000/api/qb/connect')">Test OAuth Flow</button>
+      <button onclick="clearLog()">Clear Log</button>
+      
+      <div id="log" class="log"></div>
+    </div>
+
+    <!-- iframe Preview -->
+    <div class="iframe-container">
+      <h2>📺 iframe Preview</h2>
+      <p style="color: #6b7280; margin-bottom: 15px;">
+        This preview shows how the Procuro dashboard will appear when embedded in QuickBooks Online.
+      </p>
+      
+      <div style="margin-bottom: 15px;">
+        <strong>Load:</strong>
+        <button onclick="loadIframe('http://localhost:3000/iframe-loader.html')">iframe-loader (Local)</button>
+        <button onclick="loadIframe('http://localhost:5173')">Dashboard Direct</button>
+        <button onclick="loadIframe('http://localhost:3000/iframe-loader.html?token=test123&realmId=test456')">With Mock Auth</button>
+      </div>
+      
+      <div class="iframe-wrapper">
+        <iframe id="preview-iframe" src=""></iframe>
+      </div>
+      
+      <div style="margin-top: 15px; color: #6b7280; font-size: 14px;">
+        <strong>Current URL:</strong> <span id="current-url">Not loaded</span>
+      </div>
+    </div>
+
+    <!-- File Status -->
+    <div class="test-section">
+      <h2>📁 File Status</h2>
+      <div class="test-item">
+        <strong>manifest.json:</strong> ✅ Created
+        <a href="manifest.json" target="_blank" style="margin-left: 10px;">View File</a>
+      </div>
+      <div class="test-item">
+        <strong>iframe-loader.html:</strong> ✅ Created
+        <a href="iframe-loader.html" target="_blank" style="margin-left: 10px;">View File</a>
+      </div>
+      <div class="test-item">
+        <strong>index.html:</strong> ✅ Created
+        <a href="index.html" target="_blank" style="margin-left: 10px;">View File</a>
+      </div>
+      <div class="test-item">
+        <strong>README.md:</strong> ✅ Created
+        <a href="README.md" target="_blank" style="margin-left: 10px;">View File</a>
+      </div>
+    </div>
+
+    <!-- OAuth Test -->
+    <div class="test-section">
+      <h2>🔐 OAuth Flow Test</h2>
+      <p style="color: #6b7280; margin-bottom: 15px;">
+        Test the OAuth flow by clicking the button below. You'll be redirected to QuickBooks authorization.
+      </p>
+      <button onclick="window.open('http://localhost:5000/api/qb/connect', '_blank')">
+        🔗 Test OAuth Connection
+      </button>
+      <div style="margin-top: 15px; color: #6b7280; font-size: 14px;">
+        <strong>Expected Flow:</strong><br>
+        1. Opens QuickBooks authorization page<br>
+        2. User authorizes app<br>
+        3. Redirects to callback: http://localhost:5000/api/qb/callback<br>
+        4. Shows success page with realm ID
+      </div>
+    </div>
+
+    <!-- Expected Results -->
+    <div class="test-section">
+      <h2>✅ Expected Test Results</h2>
+      <div class="test-item">
+        <strong>iframe loads:</strong> Dashboard appears in iframe with no errors
+      </div>
+      <div class="test-item">
+        <strong>Full layout:</strong> Sidebar, main panel, and right panel all visible
+      </div>
+      <div class="test-item">
+        <strong>Theme toggle:</strong> Dark/light mode switching works
+      </div>
+      <div class="test-item">
+        <strong>Tabs work:</strong> Overview, Alerts, and Savings tabs all functional
+      </div>
+      <div class="test-item">
+        <strong>OAuth flow:</strong> Connect button redirects to QuickBooks, returns with tokens
+      </div>
+      <div class="test-item">
+        <strong>No console errors:</strong> Browser console shows no JavaScript errors
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(message);
+    }
+    
+    function clearLog() {
+      logEl.innerHTML = '';
+      log('Log cleared');
+    }
+    
+    function testURL(url) {
+      log(`Testing URL: ${url}`);
+      fetch(url)
+        .then(res => {
+          if (res.ok) {
+            log(`✅ SUCCESS: ${url} is accessible (${res.status})`, 'success');
+          } else {
+            log(`❌ ERROR: ${url} returned ${res.status}`, 'error');
+          }
+        })
+        .catch(err => {
+          log(`❌ FAILED: ${url} - ${err.message}`, 'error');
+        });
+    }
+    
+    function loadIframe(url) {
+      const iframe = document.getElementById('preview-iframe');
+      const urlDisplay = document.getElementById('current-url');
+      
+      log(`Loading iframe: ${url}`);
+      iframe.src = url;
+      urlDisplay.textContent = url;
+      
+      iframe.onload = () => {
+        log(`✅ iframe loaded successfully: ${url}`);
+      };
+      
+      iframe.onerror = () => {
+        log(`❌ iframe failed to load: ${url}`);
+      };
+    }
+    
+    // Listen for messages from iframe
+    window.addEventListener('message', (event) => {
+      log(`📨 Message from iframe: ${JSON.stringify(event.data)}`);
+    });
+    
+    // Initial log
+    log('Test page loaded. Ready to test!');
+    log('Ensure all services are running before testing.');
+    
+    // Auto-load iframe after 2 seconds
+    setTimeout(() => {
+      loadIframe('http://localhost:3000/iframe-loader.html');
+    }, 2000);
+  </script>
+</body>
+</html>
+

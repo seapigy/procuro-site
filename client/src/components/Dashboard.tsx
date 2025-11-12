@@ -1,0 +1,628 @@
+import { useState, useEffect } from 'react';
+import { Package, Bell, ShoppingCart, AlertCircle, ExternalLink, TrendingUp, DollarSign, Target } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { ThemeToggle } from './theme-toggle';
+
+interface Item {
+  id: number;
+  name: string;
+  category: string | null;
+  lastPaidPrice: number;
+  upc: string | null;
+  createdAt: string;
+  prices?: Price[];
+}
+
+interface Price {
+  id: number;
+  retailer: string;
+  price: number;
+  date: string;
+}
+
+interface Alert {
+  id: number;
+  retailer: string;
+  newPrice: number;
+  oldPrice: number;
+  url: string | null;
+  savingsPerOrder: number;
+  estimatedMonthlySavings: number;
+  alertDate: string;
+  item: {
+    name: string;
+  };
+}
+
+interface SavingsSummary {
+  totalMonthlySavings: number;
+  totalItemsMonitored: number;
+  alertsThisMonth: number;
+  topSavingsItem: {
+    name: string;
+    savingsPerOrder: number;
+    estimatedMonthlySavings: number;
+    retailer: string;
+    url: string | null;
+  } | null;
+  estimatedAnnualSavings: number;
+}
+
+export function Dashboard() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [savingsSummary, setSavingsSummary] = useState<SavingsSummary | null>(null);
+  const [savingsLoading, setSavingsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+    fetchUnreadCount();
+    fetchSavingsSummary();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [itemsRes, alertsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/items'),
+        fetch('http://localhost:5000/api/alerts'),
+      ]);
+
+      if (itemsRes.ok) {
+        const itemsData = await itemsRes.json();
+        setItems(itemsData.items || []);
+      }
+
+      if (alertsRes.ok) {
+        const alertsData = await alertsRes.json();
+        setAlerts(alertsData.alerts || []);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/alerts/unreadCount');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const fetchSavingsSummary = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/savings-summary');
+      if (res.ok) {
+        const data = await res.json();
+        setSavingsSummary(data);
+      }
+    } catch (error) {
+      console.error('Error fetching savings summary:', error);
+    } finally {
+      setSavingsLoading(false);
+    }
+  };
+
+  const handleBellClick = async () => {
+    // Switch to alerts tab
+    setActiveTab('alerts');
+
+    // Mark all as seen
+    try {
+      const res = await fetch('http://localhost:5000/api/alerts/markAllSeen', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error('Error marking alerts as seen:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
+  };
+
+  return (
+    <div className="min-h-full bg-background">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center px-4">
+          <div className="mr-4 flex">
+            <ShoppingCart className="mr-2 h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">ProcuroApp</span>
+          </div>
+          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+            <div className="w-full flex-1 md:w-auto md:flex-none">
+              <span className="text-sm text-muted-foreground">Price Monitoring Dashboard</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <button
+                onClick={handleBellClick}
+                className="relative inline-flex items-center justify-center rounded-md p-2 hover:bg-accent hover:text-accent-foreground transition-colors"
+                aria-label="View alerts"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Layout */}
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Left Sidebar - Tracked Items */}
+          <div className="lg:col-span-3">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Package className="h-5 w-5" />
+                  Tracked Items
+                </CardTitle>
+                <CardDescription>
+                  {items.length} items monitored
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-sm text-muted-foreground">Loading...</div>
+                ) : items.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No items tracked yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-lg border p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                      >
+                        <div className="font-medium text-sm line-clamp-2 mb-1">
+                          {item.name}
+                        </div>
+                        {item.category && (
+                          <Badge variant="secondary" className="mb-2 text-xs">
+                            {item.category}
+                          </Badge>
+                        )}
+                        <div className="text-lg font-bold text-primary">
+                          {formatPrice(item.lastPaidPrice)}
+                        </div>
+                        {item.prices && item.prices.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {item.prices.length} price point{item.prices.length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Panel - Tabs */}
+          <div className="lg:col-span-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Dashboard
+                </CardTitle>
+                <CardDescription>
+                  Monitor your tracked items and price alerts
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="w-full justify-start">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                    <TabsTrigger value="savings">Savings</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview" className="space-y-4">
+                    {loading ? (
+                      <div className="text-sm text-muted-foreground">Loading...</div>
+                    ) : alerts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-semibold text-lg mb-2">No alerts yet</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Price alerts will appear here when tracked items have significant price changes.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {alerts.slice(0, 5).map((alert) => (
+                          <div
+                            key={alert.id}
+                            className="flex items-start gap-4 rounded-lg border p-4 hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="rounded-full bg-primary/10 p-2">
+                              <Bell className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <p className="font-medium leading-none">
+                                {alert.item.name}
+                              </p>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Badge variant="outline">{alert.retailer}</Badge>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="font-semibold text-green-600 dark:text-green-500">
+                                  {formatPrice(alert.newPrice)}
+                                </span>
+                                <span className="text-muted-foreground text-xs line-through">
+                                  {formatPrice(alert.oldPrice)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-semibold text-green-600 dark:text-green-500">
+                                  Save {formatPrice(alert.savingsPerOrder)}
+                                </span>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="text-muted-foreground">
+                                  ~{formatPrice(alert.estimatedMonthlySavings)}/mo
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(alert.alertDate)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="alerts">
+                    {loading ? (
+                      <div className="text-sm text-muted-foreground py-8 text-center">Loading...</div>
+                    ) : alerts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-semibold text-lg mb-2">No alerts yet</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Price alerts will appear here when tracked items have better prices available.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item Name</TableHead>
+                              <TableHead>Retailer</TableHead>
+                              <TableHead>Old Price</TableHead>
+                              <TableHead>New Price</TableHead>
+                              <TableHead>Savings</TableHead>
+                              <TableHead className="text-right">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {alerts.map((alert) => (
+                              <TableRow key={alert.id}>
+                                <TableCell className="font-medium">
+                                  {alert.item.name}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{alert.retailer}</Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground line-through">
+                                  {formatPrice(alert.oldPrice)}
+                                </TableCell>
+                                <TableCell className="font-semibold text-green-600 dark:text-green-500">
+                                  {formatPrice(alert.newPrice)}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    <div className="font-semibold text-green-600 dark:text-green-500">
+                                      Save {formatPrice(alert.savingsPerOrder)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      ~{formatPrice(alert.estimatedMonthlySavings)}/month
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {alert.url ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      asChild
+                                    >
+                                      <a
+                                        href={alert.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2"
+                                      >
+                                        View Deal
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" variant="ghost" disabled>
+                                      No Link
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="savings">
+                    {savingsLoading ? (
+                      <div className="text-sm text-muted-foreground py-8 text-center">Loading savings data...</div>
+                    ) : !savingsSummary ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-semibold text-lg mb-2">No savings data available</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Savings data will appear once items are tracked and price alerts are created.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Main Savings Card - Largest */}
+                        <div className="rounded-lg border-2 border-primary bg-primary/5 p-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-5 w-5 text-primary" />
+                            <h3 className="text-sm font-medium text-muted-foreground">Estimated Monthly Savings</h3>
+                          </div>
+                          <div className="text-5xl font-bold text-primary mb-2">
+                            {formatPrice(savingsSummary.totalMonthlySavings)}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Based on {savingsSummary.alertsThisMonth} price {savingsSummary.alertsThisMonth === 1 ? 'alert' : 'alerts'} this month
+                          </p>
+                        </div>
+
+                        {/* Summary Cards Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Annual Savings */}
+                          <div className="rounded-lg border p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
+                              <h3 className="text-xs font-medium text-muted-foreground">Annual Savings</h3>
+                            </div>
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-500">
+                              {formatPrice(savingsSummary.estimatedAnnualSavings)}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Projected yearly</p>
+                          </div>
+
+                          {/* Items Monitored */}
+                          <div className="rounded-lg border p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <h3 className="text-xs font-medium text-muted-foreground">Items Monitored</h3>
+                            </div>
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                              {savingsSummary.totalItemsMonitored}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Total tracked items</p>
+                          </div>
+
+                          {/* Alerts This Month */}
+                          <div className="rounded-lg border p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Bell className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              <h3 className="text-xs font-medium text-muted-foreground">Alerts Found</h3>
+                            </div>
+                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                              {savingsSummary.alertsThisMonth}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+                          </div>
+                        </div>
+
+                        {/* Top Savings Item */}
+                        {savingsSummary.topSavingsItem && (
+                          <div className="rounded-lg border p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Target className="h-5 w-5 text-primary" />
+                              <h3 className="text-sm font-semibold">Top Savings Opportunity</h3>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="font-medium">{savingsSummary.topSavingsItem.name}</p>
+                              <div className="flex items-center gap-4 text-sm">
+                                <Badge variant="outline">{savingsSummary.topSavingsItem.retailer}</Badge>
+                                <span className="text-green-600 dark:text-green-500 font-semibold">
+                                  Save {formatPrice(savingsSummary.topSavingsItem.savingsPerOrder)} per order
+                                </span>
+                                <span className="text-muted-foreground">
+                                  ~{formatPrice(savingsSummary.topSavingsItem.estimatedMonthlySavings)}/month
+                                </span>
+                              </div>
+                              {savingsSummary.topSavingsItem.url && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  asChild
+                                  className="mt-2"
+                                >
+                                  <a
+                                    href={savingsSummary.topSavingsItem.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2"
+                                  >
+                                    View Deal
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Placeholder for Future Chart */}
+                        <div className="rounded-lg border border-dashed p-8 text-center">
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
+                            <TrendingUp className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <h3 className="font-semibold mb-2">Savings Trend Chart</h3>
+                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                            Historical savings visualization coming soon. Track your savings over time.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Panel - Connected Retailers */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Connected Retailers</CardTitle>
+                <CardDescription>Integration status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <RetailerStatus
+                    name="Amazon"
+                    status="pending"
+                    statusText="Awaiting API Activation"
+                  />
+                  <RetailerStatus
+                    name="Best Buy"
+                    status="inactive"
+                    statusText="Not Connected"
+                  />
+                  <RetailerStatus
+                    name="Walmart"
+                    status="inactive"
+                    statusText="Not Connected"
+                  />
+                </div>
+
+                <div className="mt-6 p-4 rounded-lg bg-muted">
+                  <h4 className="font-semibold text-sm mb-2">QuickBooks</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Connect your QuickBooks account to import purchase history
+                  </p>
+                  <a
+                    href="http://localhost:5000/api/qb/connect"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 w-full"
+                  >
+                    Connect QuickBooks
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-8 pt-6 border-t text-center text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-4">
+            <a 
+              href="/support" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Support
+            </a>
+            <span>•</span>
+            <a 
+              href="/privacy" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span>•</span>
+            <a 
+              href="/terms" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Terms of Use
+            </a>
+          </div>
+          <div className="mt-2 text-xs">
+            © 2025 Procuro. All rights reserved.
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+interface RetailerStatusProps {
+  name: string;
+  status: 'active' | 'pending' | 'inactive';
+  statusText: string;
+}
+
+function RetailerStatus({ name, status, statusText }: RetailerStatusProps) {
+  const getStatusColor = () => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-500';
+      case 'pending':
+        return 'bg-yellow-500';
+      case 'inactive':
+        return 'bg-gray-300 dark:bg-gray-700';
+      default:
+        return 'bg-gray-300';
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-3">
+      <div className="flex items-center gap-3">
+        <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor()}`} />
+        <div>
+          <div className="font-medium text-sm">{name}</div>
+          <div className="text-xs text-muted-foreground">{statusText}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
