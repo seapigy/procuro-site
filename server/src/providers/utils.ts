@@ -5,6 +5,9 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { DEFAULT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY } from './types';
 
+// Re-export constants for use in providers
+export { DEFAULT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY };
+
 /**
  * Fetch HTML with retry logic
  */

@@ -157,6 +157,7 @@ async function storeResults(
             retailer: result.retailer,
             oldPrice: currentLastPaidPrice,
             newPrice: result.price,
+            priceDropAmount: savings,
             savingsPerOrder: savings,
             estimatedMonthlySavings,
             url: result.url || '',

@@ -13,6 +13,6 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   verbose: true,
-  testTimeout: 10000
+  testTimeout: 60000 // Extended for integration tests with real API calls
 };
 
