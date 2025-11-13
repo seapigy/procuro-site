@@ -1,0 +1,46 @@
+{
+  "app_name": "Procuro",
+  "short_tagline": "Save money on what you already buy.",
+  "long_description": "Procuro automatically scans your recurring business purchases and finds better prices from trusted vendors like Amazon, Walmart, and Staples. Embedded directly inside QuickBooks, it helps your company save money without changing your workflow.",
+  "key_features": [
+    "Embedded directly inside QuickBooks Online",
+    "Real-time savings alerts for recurring purchases",
+    "Compare vendors across Amazon, Walmart, Staples, and more",
+    "Secure AES-256 encrypted QuickBooks token handling",
+    "Easy setup – no manual uploads or CSVs"
+  ],
+  "target_audience": "Small to medium businesses using QuickBooks Online",
+  "pricing": "$9.99/month or $99/year with 14-day free trial",
+  "contact_email": "procuroapp@gmail.com",
+  "developer": {
+    "company_name": "Procuro Inc.",
+    "website": "https://procuroapp.com",
+    "support_email": "procuroapp@gmail.com"
+  },
+  "screenshots": {
+    "dashboard": "/assets/appstore/screenshot-dashboard.png",
+    "alerts": "/assets/appstore/screenshot-alerts.png",
+    "reports": "/assets/appstore/screenshot-reports.png",
+    "settings": "/assets/appstore/screenshot-settings.png"
+  },
+  "branding": {
+    "logo": "/assets/appstore/procuro-logo-512.png",
+    "banner": "/assets/appstore/banner-1280x640.png",
+    "primary_color": "#0077C5",
+    "accent_color": "#00A699"
+  },
+  "technical": {
+    "oauth_redirect_uri": "https://procuroapp.com/oauth/callback",
+    "launch_url": "https://procuroapp.com/qbo_embed/iframe-loader.html",
+    "scopes": ["accounting", "openid", "profile", "email"],
+    "minimum_qbo_version": "Any",
+    "supported_countries": ["US", "CA"]
+  },
+  "support": {
+    "documentation_url": "https://github.com/seapigy/procuro-site/tree/main/docs",
+    "support_email": "procuroapp@gmail.com",
+    "privacy_policy_url": "https://procuroapp.com/privacy",
+    "terms_of_service_url": "https://procuroapp.com/terms"
+  }
+}
+

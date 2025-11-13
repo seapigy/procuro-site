@@ -1,18 +1,31 @@
 {
-  "name": "Procuro",
-  "version": "1.0.0",
-  "description": "Save money on what you already buy — automated price tracking for QuickBooks users.",
-  "vendor": "Procuro",
-  "homepage": "https://procuroapp.com",
+  "name": "Procuro - Smart Purchasing Alerts",
+  "description": "Procuro helps businesses save money on the items they already buy. Automatically monitor your company's recurring purchases in QuickBooks, compare prices across major retailers, and receive instant savings alerts directly inside QuickBooks Online.",
+  "auth": {
+    "type": "OAuth2",
+    "redirect_uris": [
+      "https://procuroapp.com/oauth/callback",
+      "http://localhost:5000/api/qb/callback"
+    ],
+    "scopes": [
+      "com.intuit.quickbooks.accounting",
+      "openid",
+      "profile",
+      "email"
+    ]
+  },
   "launch_url": "https://procuroapp.com/qbo_embed/iframe-loader.html",
-  "scopes": [
-    "com.intuit.quickbooks.accounting",
-    "openid",
-    "profile",
-    "email"
-  ],
-  "redirect_uris": [
-    "https://procuroapp.com/oauth/callback"
-  ]
+  "dashboard_url": "https://procuroapp.com/dashboard",
+  "support_url": "https://procuroapp.com/support",
+  "privacy_url": "https://procuroapp.com/privacy",
+  "terms_url": "https://procuroapp.com/terms",
+  "category": "Accounting, Business Efficiency, Savings Tools",
+  "version": "1.1.0",
+  "pricing": {
+    "model": "Subscription",
+    "free_trial_days": 14,
+    "currency": "USD",
+    "monthly_price": 9.99,
+    "annual_price": 99.00
+  }
 }
-

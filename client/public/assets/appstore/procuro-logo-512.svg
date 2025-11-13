@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#0077C5"/>
+  
+  <!-- White Shopping Cart Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Cart body -->
+    <rect x="40" y="60" width="180" height="140" rx="12" fill="white" opacity="0.2"/>
+    <rect x="50" y="70" width="160" height="120" rx="8" fill="white"/>
+    
+    <!-- Dollar sign overlay -->
+    <path d="M140 90 L140 160 M120 100 L160 100 M120 145 L160 145" stroke="#00A699" stroke-width="14" stroke-linecap="round"/>
+    
+    <!-- Cart handle -->
+    <path d="M220 50 L240 50 L220 220 L60 220 L40 50 L60 50" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Wheels -->
+    <circle cx="80" cy="240" r="16" fill="white"/>
+    <circle cx="200" cy="240" r="16" fill="white"/>
+  </g>
+  
+  <!-- Brand Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="white" text-anchor="middle">PROCURO</text>
+  <text x="256" y="460" font-family="Arial, sans-serif" font-size="24" fill="#E0E0E0" text-anchor="middle">Smart Savings</text>
+</svg>
+

@@ -3,249 +3,349 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terms of Use – Procuro</title>
+  <title>Terms of Service – Procuro</title>
   <style>
     body { 
       font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      max-width: 700px; 
+      max-width: 800px; 
       margin: auto; 
-      line-height: 1.6; 
-      padding: 40px;
+      line-height: 1.7; 
+      padding: 40px 20px;
       color: #1a1a1a;
-      background: #f9fafb;
+      background: #f8f9fa;
     }
     h1 { 
-      color: #1E40AF; 
+      color: #0077C5; 
       margin-bottom: 10px;
+      font-size: 32px;
     }
     h2 {
-      color: #1E40AF;
-      margin-top: 30px;
-      font-size: 20px;
+      color: #0077C5;
+      margin-top: 40px;
+      font-size: 22px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    h3 {
+      color: #333;
+      margin-top: 25px;
+      font-size: 18px;
     }
     .container {
       background: white;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     a {
-      color: #1E40AF;
+      color: #0077C5;
       text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
     }
     a:hover {
-      text-decoration: underline;
+      border-bottom-color: #0077C5;
     }
     .effective-date {
       color: #6b7280;
       font-style: italic;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
+      font-size: 14px;
     }
-    .back-link {
-      display: inline-block;
-      margin-bottom: 20px;
+    .important-box {
+      background: #fff3cd;
+      padding: 24px;
+      border-radius: 8px;
+      margin: 25px 0;
+      border-left: 4px solid #ffc107;
+    }
+    .important-box strong {
+      color: #856404;
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 30px;
+    }
+    li {
+      margin: 10px 0;
+    }
+    .footer {
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 2px solid #e0e0e0;
+      text-align: center;
       color: #6b7280;
       font-size: 14px;
     }
-    ul {
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 10px;
-    }
-    .important {
-      background: #fef3c7;
-      padding: 15px;
-      border-radius: 6px;
-      margin: 20px 0;
-      border-left: 4px solid #f59e0b;
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 15px;
+      }
+      .container {
+        padding: 30px 20px;
+      }
+      h1 {
+        font-size: 26px;
+      }
     }
   </style>
 </head>
 <body>
-  <a href="/" class="back-link">← Back to Dashboard</a>
-  
   <div class="container">
-    <h1>Terms of Use</h1>
-    <p class="effective-date">Effective Date: January 1, 2025</p>
-    
-    <p>
-      Welcome to Procuro. By connecting your QuickBooks account or using our application, 
-      you agree to these terms.
-    </p>
-    
+    <h1>Terms of Service</h1>
+    <p class="effective-date">Effective Date: November 13, 2025 | Version 1.1.0</p>
+
+    <div class="important-box">
+      <strong>⚠️ Important Notice</strong>
+      By using Procuro, you agree to these Terms of Service. If you do not agree, please do not use the app.
+    </div>
+
     <h2>1. Acceptance of Terms</h2>
     <p>
-      By accessing or using Procuro, you agree to be bound by these Terms of Use and our Privacy Policy. 
-      If you do not agree to these terms, please do not use our service.
+      Welcome to Procuro! These Terms of Service ("Terms") govern your use of the Procuro application ("App"), which integrates with QuickBooks Online. By accessing or using Procuro, you ("User," "you," or "your") agree to be bound by these Terms.
     </p>
-    
+
     <h2>2. Description of Service</h2>
-    <ul>
-      <li>Procuro provides automated purchasing insights and savings recommendations by analyzing 
-          your QuickBooks purchase history.</li>
-      <li>We compare your historical purchase prices with current retail prices from major suppliers 
-          (Amazon, Walmart, Target) to identify potential savings.</li>
-      <li>The service generates alerts when better deals are available for items you regularly purchase.</li>
-      <li>Savings estimates are calculated based on your purchase frequency and price differences.</li>
-    </ul>
-    
-    <h2>3. QuickBooks Integration</h2>
     <p>
-      To use Procuro, you must connect your QuickBooks Online account. By doing so, you authorize 
-      Procuro to access:
+      Procuro is a business savings tool that:
     </p>
     <ul>
-      <li>Purchase and bill transactions</li>
-      <li>Vendor information</li>
-      <li>Item descriptions and quantities</li>
-      <li>Historical pricing data</li>
+      <li>Connects to your QuickBooks Online account via OAuth 2.0</li>
+      <li>Monitors your recurring business purchases</li>
+      <li>Compares prices across major retailers (Amazon, Walmart, Staples, etc.)</li>
+      <li>Generates savings alerts when better prices are found</li>
+      <li>Provides analytics dashboards and reports</li>
     </ul>
-    
+
+    <h2>3. Eligibility</h2>
     <p>
-      You can disconnect Procuro from your QuickBooks account at any time through the QuickBooks Apps 
-      settings or by contacting our support team.
-    </p>
-    
-    <h2>4. Pricing Information</h2>
-    <div class="important">
-      <p style="margin: 0;">
-        <strong>Important:</strong> Pricing data is provided "as-is" from retailer APIs and may change 
-        without notice. Procuro is not responsible for price accuracy, availability, or fulfillment by 
-        third-party retailers.
-      </p>
-    </div>
-    
-    <ul>
-      <li>Retail prices are sourced from Amazon, Walmart, and Target APIs and updated daily.</li>
-      <li>Actual prices may vary due to promotions, regional differences, taxes, or shipping costs.</li>
-      <li>Savings calculations are estimates based on your purchase patterns and may not reflect 
-          actual realized savings.</li>
-    </ul>
-    
-    <h2>5. No Purchase Fulfillment</h2>
-    <p>
-      <strong>Procuro is a price comparison and recommendation tool only.</strong> We do not:
+      To use Procuro, you must:
     </p>
     <ul>
-      <li>Sell products or services</li>
-      <li>Process payments or orders</li>
-      <li>Fulfill purchases or arrange delivery</li>
-      <li>Guarantee product availability</li>
-      <li>Provide warranties on third-party products</li>
+      <li>Be at least 18 years old</li>
+      <li>Have a valid QuickBooks Online account</li>
+      <li>Have authority to connect your company's QuickBooks account</li>
+      <li>Provide accurate registration information</li>
     </ul>
+
+    <h2>4. Account Responsibilities</h2>
     
+    <h3>4.1 QuickBooks Connection</h3>
     <p>
-      All purchases must be made directly with the retailer. Procuro is not responsible for any issues 
-      with orders, delivery, quality, or customer service provided by third-party retailers.
-    </p>
-    
-    <h2>6. User Responsibilities</h2>
-    <p>You agree to:</p>
-    <ul>
-      <li>Provide accurate QuickBooks connection credentials</li>
-      <li>Maintain the security of your account</li>
-      <li>Use the service in compliance with applicable laws and regulations</li>
-      <li>Not attempt to reverse engineer, hack, or interfere with the service</li>
-      <li>Not use the service for any unlawful or fraudulent purposes</li>
-    </ul>
-    
-    <h2>7. Data and Privacy</h2>
-    <p>
-      Your privacy is important to us. Please review our <a href="/privacy">Privacy Policy</a> to 
-      understand how we collect, use, and protect your data.
-    </p>
-    
-    <h2>8. Intellectual Property</h2>
-    <p>
-      Procuro and its logos, designs, and content are the property of Procuro or its licensors. 
-      All trademarks and logos displayed in the application are property of their respective owners.
-    </p>
-    
-    <ul>
-      <li>QuickBooks® is a registered trademark of Intuit Inc.</li>
-      <li>Amazon® is a registered trademark of Amazon.com, Inc.</li>
-      <li>Walmart® is a registered trademark of Walmart Inc.</li>
-      <li>Target® is a registered trademark of Target Brands, Inc.</li>
-    </ul>
-    
-    <p>
-      Procuro is an independent application and is not affiliated with, endorsed by, or sponsored by 
-      Intuit, Amazon, Walmart, or Target.
-    </p>
-    
-    <h2>9. Service Availability</h2>
-    <p>
-      We strive to provide reliable service, but we do not guarantee:
+      You are responsible for:
     </p>
     <ul>
-      <li>Uninterrupted or error-free operation</li>
-      <li>Availability of all features at all times</li>
-      <li>Accuracy of third-party data sources</li>
+      <li>Maintaining the security of your QuickBooks credentials</li>
+      <li>All activities that occur under your connected account</li>
+      <li>Notifying us immediately of any unauthorized access</li>
     </ul>
-    
+
+    <h3>4.2 Data Accuracy</h3>
     <p>
-      We reserve the right to modify, suspend, or discontinue any part of the service at any time 
-      with or without notice.
+      Procuro relies on data from your QuickBooks account. You are responsible for ensuring that your QuickBooks data is accurate and up-to-date.
     </p>
+
+    <h2>5. Subscription & Pricing</h2>
     
-    <h2>10. Limitation of Liability</h2>
-    <div class="important">
-      <p>
-        <strong>To the maximum extent permitted by law:</strong>
-      </p>
-      <p>
-        Procuro is provided "as-is" without warranties of any kind, express or implied. We are not 
-        liable for any indirect, incidental, special, or consequential damages arising from your 
-        use of the service, including but not limited to:
-      </p>
-      <ul style="margin-bottom: 0;">
-        <li>Lost profits or savings</li>
-        <li>Business interruption</li>
-        <li>Data loss</li>
-        <li>Third-party product issues</li>
-        <li>Pricing discrepancies</li>
+    <h3>5.1 Free Trial</h3>
+    <p>
+      New users receive a <strong>14-day free trial</strong>. No credit card is required during the trial. The trial automatically ends after 14 days unless you subscribe.
+    </p>
+
+    <h3>5.2 Paid Subscription</h3>
+    <p>After the free trial, Procuro costs:</p>
+    <ul>
+      <li><strong>$9.99/month</strong> (billed monthly)</li>
+      <li><strong>$99/year</strong> (billed annually, saves $20/year)</li>
+    </ul>
+
+    <h3>5.3 Billing</h3>
+    <ul>
+      <li>Subscriptions auto-renew unless canceled</li>
+      <li>You will be charged at the start of each billing cycle</li>
+      <li>Prices may change with 30 days' notice</li>
+    </ul>
+
+    <h3>5.4 Cancellation</h3>
+    <p>
+      You may cancel at any time. Cancellations take effect at the end of the current billing period. No refunds for partial months/years.
+    </p>
+
+    <h2>6. Use Restrictions</h2>
+    
+    <p>You agree NOT to:</p>
+    <ul>
+      <li>❌ Use Procuro for any illegal or unauthorized purpose</li>
+      <li>❌ Reverse engineer, decompile, or disassemble the App</li>
+      <li>❌ Attempt to gain unauthorized access to our systems</li>
+      <li>❌ Use automated bots or scrapers to access the App</li>
+      <li>❌ Share your account credentials with others</li>
+      <li>❌ Resell or redistribute Procuro services</li>
+      <li>❌ Upload malicious code or viruses</li>
+    </ul>
+
+    <h2>7. Savings Estimates & Disclaimers</h2>
+    
+    <div class="important-box">
+      <strong>⚠️ No Guarantee of Savings</strong>
+      Procuro provides price comparison data for informational purposes only. We do NOT guarantee:
+      <ul style="margin-top: 10px;">
+        <li>That displayed prices are the lowest available</li>
+        <li>That you will achieve any specific savings amount</li>
+        <li>That prices shown are accurate in real-time (retailer prices change frequently)</li>
+        <li>That items are in stock or available for purchase</li>
       </ul>
     </div>
+
+    <h3>7.1 Price Data Sources</h3>
+    <p>
+      Price data is sourced from third-party retailer APIs and websites. We are not responsible for:
+    </p>
+    <ul>
+      <li>Errors in retailer pricing data</li>
+      <li>Price changes after alerts are generated</li>
+      <li>Differences in product specifications or quality</li>
+      <li>Shipping costs, taxes, or additional fees</li>
+    </ul>
+
+    <h3>7.2 Purchasing Decisions</h3>
+    <p>
+      You are solely responsible for all purchasing decisions. Procuro does NOT:
+    </p>
+    <ul>
+      <li>Process purchases or payments</li>
+      <li>Endorse specific vendors or products</li>
+      <li>Verify product quality or authenticity</li>
+    </ul>
+
+    <h2>8. Intellectual Property</h2>
     
+    <p>
+      All content, features, and functionality of Procuro (including software, text, graphics, logos, and trademarks) are owned by Procuro and protected by copyright, trademark, and other intellectual property laws.
+    </p>
+
+    <p>You may NOT:</p>
+    <ul>
+      <li>Copy, modify, or distribute our code or content</li>
+      <li>Use our trademarks without permission</li>
+      <li>Create derivative works based on Procuro</li>
+    </ul>
+
+    <h2>9. Limitation of Liability</h2>
+    
+    <div class="important-box">
+      <strong>⚠️ "AS-IS" Software Disclaimer</strong>
+      Procuro is provided "AS IS" and "AS AVAILABLE" without warranties of any kind, either express or implied.
+    </div>
+
+    <p>
+      To the maximum extent permitted by law, Procuro and its developers shall NOT be liable for:
+    </p>
+    <ul>
+      <li>Any direct, indirect, incidental, or consequential damages</li>
+      <li>Loss of profits, revenue, or business opportunities</li>
+      <li>Data loss or corruption</li>
+      <li>Errors, interruptions, or downtime</li>
+      <li>Reliance on price data or savings estimates</li>
+      <li>Unauthorized access to your account</li>
+    </ul>
+
+    <p><strong>Maximum Liability:</strong> Our total liability shall not exceed the amount you paid for Procuro in the 12 months prior to the claim.</p>
+
+    <h2>10. Indemnification</h2>
+    
+    <p>
+      You agree to indemnify and hold harmless Procuro, its developers, and affiliates from any claims, damages, or expenses arising from:
+    </p>
+    <ul>
+      <li>Your use of the App</li>
+      <li>Your violation of these Terms</li>
+      <li>Your violation of any third-party rights</li>
+      <li>Your QuickBooks data or purchasing decisions</li>
+    </ul>
+
     <h2>11. Termination</h2>
+    
+    <h3>11.1 By You</h3>
     <p>
-      You may discontinue service at any time by disconnecting your QuickBooks account. 
-      We reserve the right to terminate or suspend access to the service for violations of these terms.
+      You may terminate your account at any time by:
     </p>
-    
-    <h2>12. Changes to Terms</h2>
+    <ul>
+      <li>Canceling your subscription in Settings</li>
+      <li>Disconnecting from QuickBooks</li>
+      <li>Emailing us at <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a></li>
+    </ul>
+
+    <h3>11.2 By Us</h3>
     <p>
-      We may modify these terms at any time. Changes will be posted on this page with an updated 
-      effective date. Continued use of the service after changes constitute acceptance of the new terms.
+      We may suspend or terminate your account if:
     </p>
+    <ul>
+      <li>You violate these Terms</li>
+      <li>Your subscription payment fails</li>
+      <li>We detect fraudulent or abusive activity</li>
+      <li>We discontinue the service (with 30 days' notice)</li>
+    </ul>
+
+    <h2>12. Privacy</h2>
     
-    <h2>13. Governing Law</h2>
     <p>
-      These terms are governed by and construed in accordance with the laws of the jurisdiction in 
-      which Procuro operates, without regard to conflict of law principles.
+      Your use of Procuro is also governed by our <a href="/privacy">Privacy Policy</a>, which explains how we collect, use, and protect your data.
     </p>
+
+    <h2>13. Changes to Terms</h2>
     
-    <h2>14. Contact Information</h2>
     <p>
-      For questions about these terms, please email: 
-      <a href="mailto:legal@procuroapp.com">legal@procuroapp.com</a>
+      We may update these Terms periodically. Changes will be posted on this page with an updated "Effective Date." Continued use of Procuro after changes constitutes acceptance of the updated Terms.
     </p>
-    
-    <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-      <strong>Procuro</strong><br>
-      Legal Department<br>
-      Email: <a href="mailto:legal@procuroapp.com">legal@procuroapp.com</a>
+
+    <p>
+      Material changes will be communicated via email or in-app notification.
     </p>
+
+    <h2>14. Governing Law</h2>
     
-    <hr style="margin: 40px 0; border: none; border-top: 1px solid #e5e7eb;" />
-    
-    <p style="text-align: center; color: #6b7280; font-size: 14px;">
-      <a href="/support">Support</a> | 
-      <a href="/privacy">Privacy Policy</a> | 
-      <a href="/">Dashboard</a>
+    <p>
+      These Terms are governed by the laws of the State of California, United States, without regard to conflict of law principles.
     </p>
+
+    <p>
+      Any disputes shall be resolved in the courts of California.
+    </p>
+
+    <h2>15. Severability</h2>
+    
+    <p>
+      If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
+    </p>
+
+    <h2>16. Entire Agreement</h2>
+    
+    <p>
+      These Terms, together with our Privacy Policy, constitute the entire agreement between you and Procuro regarding your use of the App.
+    </p>
+
+    <h2>17. Contact Us</h2>
+    
+    <p>
+      Questions about these Terms? Contact us:
+    </p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a></li>
+      <li><strong>Support Page:</strong> <a href="/support">procuroapp.com/support</a></li>
+    </ul>
+
+    <div class="footer">
+      <p>© 2025 Procuro. All rights reserved.</p>
+      <p>
+        <a href="/">Home</a> | 
+        <a href="/privacy">Privacy Policy</a> | 
+        <a href="/support">Support</a>
+      </p>
+    </div>
   </div>
 </body>
 </html>
-

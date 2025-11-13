@@ -7,117 +7,352 @@
   <style>
     body { 
       font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      max-width: 700px; 
+      max-width: 900px; 
       margin: auto; 
-      line-height: 1.6; 
-      padding: 40px;
+      line-height: 1.7; 
+      padding: 40px 20px;
       color: #1a1a1a;
-      background: #f9fafb;
+      background: #f8f9fa;
     }
     h1 { 
-      color: #1E40AF; 
+      color: #0077C5; 
       margin-bottom: 10px;
+      font-size: 36px;
+      text-align: center;
     }
     h2 {
-      color: #1E40AF;
-      margin-top: 30px;
-      font-size: 20px;
+      color: #0077C5;
+      margin-top: 40px;
+      font-size: 24px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    h3 {
+      color: #333;
+      margin-top: 25px;
+      font-size: 18px;
     }
     .container {
       background: white;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .hero p {
+      color: #6b7280;
+      font-size: 18px;
     }
     a {
-      color: #1E40AF;
+      color: #0077C5;
       text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
     }
     a:hover {
-      text-decoration: underline;
+      border-bottom-color: #0077C5;
     }
-    ul {
-      padding-left: 20px;
+    .contact-card {
+      background: linear-gradient(135deg, #0077C5 0%, #00A699 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 30px 0;
+      text-align: center;
+    }
+    .contact-card h2 {
+      color: white;
+      border: none;
+      margin: 0 0 15px 0;
+      font-size: 24px;
+    }
+    .contact-card a {
+      color: white;
+      font-size: 20px;
+      font-weight: 600;
+      border-bottom: 2px solid white;
+    }
+    .faq-item {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid #0077C5;
+    }
+    .faq-item h3 {
+      color: #0077C5;
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    .faq-item p, .faq-item ul, .faq-item ol {
+      margin: 10px 0;
+      color: #333;
+    }
+    ul, ol {
+      padding-left: 30px;
     }
     li {
-      margin-bottom: 15px;
+      margin: 8px 0;
     }
-    .contact-info {
-      background: #f0f9ff;
-      padding: 20px;
-      border-radius: 6px;
-      margin: 20px 0;
-      border-left: 4px solid #1E40AF;
+    code {
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #d63384;
     }
-    .back-link {
+    .button-link {
       display: inline-block;
-      margin-bottom: 20px;
+      background: #0077C5;
+      color: white !important;
+      padding: 12px 30px;
+      border-radius: 8px;
+      margin: 20px 10px;
+      font-weight: 600;
+      transition: background 0.2s;
+      border: none;
+    }
+    .button-link:hover {
+      background: #005a9c;
+      border-bottom: none;
+    }
+    .footer {
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 2px solid #e0e0e0;
+      text-align: center;
       color: #6b7280;
       font-size: 14px;
+    }
+    .resources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .resource-card {
+      background: #f0f9ff;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #bee3f8;
+    }
+    .resource-card h3 {
+      color: #0077C5;
+      margin-top: 0;
+      font-size: 16px;
+    }
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 15px;
+      }
+      .container {
+        padding: 30px 20px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      .resources-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <a href="/" class="back-link">← Back to Dashboard</a>
-  
   <div class="container">
-    <h1>Procuro Support</h1>
-    <p>Need help? We're here for you.</p>
-    
-    <div class="contact-info">
-      <p><strong>Email:</strong> <a href="mailto:support@procuroapp.com">support@procuroapp.com</a></p>
-      <p style="margin-bottom: 0;"><strong>Response Time:</strong> Within 24 business hours</p>
+    <div class="hero">
+      <h1>💬 Procuro Support</h1>
+      <p>We're here to help! Get answers to common questions or contact us directly.</p>
     </div>
-    
-    <h2>Common Questions</h2>
+
+    <div class="contact-card">
+      <h2>📧 Need Help?</h2>
+      <p>Email us at:</p>
+      <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a>
+      <p style="margin-top: 15px; font-size: 14px; opacity: 0.9;">We typically respond within 24 hours (weekdays)</p>
+    </div>
+
+    <h2>❓ Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <h3>Q: How do I connect Procuro to QuickBooks?</h3>
+      <p><strong>A:</strong> Follow these steps:</p>
+      <ol>
+        <li>Open QuickBooks Online</li>
+        <li>Navigate to <strong>Apps</strong> in the left sidebar</li>
+        <li>Search for "Procuro" and click <strong>Get App Now</strong></li>
+        <li>Click <strong>Connect</strong> to authorize Procuro</li>
+        <li>You'll be redirected to Procuro's dashboard inside QuickBooks</li>
+      </ol>
+      <p>Your items will automatically sync from your Purchase transactions.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: What data does Procuro access from QuickBooks?</h3>
+      <p><strong>A:</strong> Procuro only accesses:</p>
+      <ul>
+        <li><strong>Purchase transactions</strong> – Item names, vendors, prices</li>
+        <li><strong>Company info</strong> – Company name (for display only)</li>
+        <li><strong>User profile</strong> – Name and email (for authentication)</li>
+      </ul>
+      <p>We do <strong>NOT</strong> access customer data, invoices, sales, or bank accounts.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: How accurate are the savings alerts?</h3>
+      <p><strong>A:</strong> Procuro uses real-time pricing APIs from major retailers (Amazon, Walmart, Staples). However:</p>
+      <ul>
+        <li>Prices can change frequently</li>
+        <li>Product matching is 75-85% accurate (we use sophisticated algorithms)</li>
+        <li>Always verify prices before purchasing</li>
+      </ul>
+      <p>Procuro is a <strong>price comparison tool</strong>, not a purchasing platform.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: Why am I not seeing any items?</h3>
+      <p><strong>A:</strong> Common reasons:</p>
+      <ol>
+        <li><strong>No Purchase transactions</strong> – Procuro only tracks items from QuickBooks Purchase transactions (Expenses → Vendors)</li>
+        <li><strong>Recently connected</strong> – Initial sync can take 1-2 minutes</li>
+        <li><strong>QuickBooks permissions</strong> – Ensure you granted "Accounting" scope during OAuth</li>
+      </ol>
+      <p><strong>Solution:</strong> Try disconnecting and reconnecting QuickBooks, or contact support.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: How do I cancel my subscription?</h3>
+      <p><strong>A:</strong> You can cancel anytime:</p>
+      <ol>
+        <li>Open Procuro in QuickBooks</li>
+        <li>Click <strong>Settings</strong> (gear icon)</li>
+        <li>Scroll to <strong>Subscription</strong> section</li>
+        <li>Click <strong>Cancel Subscription</strong></li>
+      </ol>
+      <p>Your access continues until the end of the current billing period. No refunds for partial periods.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: Is my data secure?</h3>
+      <p><strong>A:</strong> Yes! Procuro uses:</p>
+      <ul>
+        <li><strong>AES-256-GCM encryption</strong> for OAuth tokens</li>
+        <li><strong>HTTPS/TLS</strong> for all connections</li>
+        <li><strong>No data sharing</strong> with third parties</li>
+      </ul>
+      <p>See our <a href="/privacy">Privacy Policy</a> for full details.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Q: Can I export my savings data?</h3>
+      <p><strong>A:</strong> Yes! From the <strong>Reports</strong> tab:</p>
+      <ol>
+        <li>Navigate to <strong>Reports</strong> in the top menu</li>
+        <li>Click <strong>Export CSV</strong></li>
+        <li>A CSV file will download with all your savings alerts</li>
+      </ol>
+      <p>You can also download a database backup from <strong>Settings</strong>.</p>
+    </div>
+
+    <h2>🛠️ Troubleshooting</h2>
+
+    <div class="faq-item">
+      <h3>Problem: "Connection Error" when opening Procuro</h3>
+      <p><strong>Solution:</strong></p>
+      <ol>
+        <li>Clear your browser cache and cookies</li>
+        <li>Try opening in an incognito/private window</li>
+        <li>Ensure you're logged into QuickBooks Online</li>
+        <li>Try a different browser (Chrome, Firefox, Safari)</li>
+        <li>Check if QuickBooks is experiencing downtime: <a href="https://status.intuit.com" target="_blank">status.intuit.com</a></li>
+      </ol>
+    </div>
+
+    <div class="faq-item">
+      <h3>Problem: Items not updating or alerts not appearing</h3>
+      <p><strong>Solution:</strong></p>
+      <ol>
+        <li>Refresh the Procuro dashboard (F5 or Ctrl+R)</li>
+        <li>Check if auto-check is enabled in <strong>Settings</strong></li>
+        <li>Verify your QuickBooks connection is active</li>
+        <li>Price checks run daily at 3:00 AM – allow 24 hours for initial alerts</li>
+      </ol>
+    </div>
+
+    <div class="faq-item">
+      <h3>Problem: Can't find an item in search results</h3>
+      <p><strong>Solution:</strong></p>
+      <ul>
+        <li>Try searching by <strong>vendor name</strong> instead of item name</li>
+        <li>Use partial keywords (e.g., "paper" instead of "copy paper")</li>
+        <li>Clear the search filter and manually scroll</li>
+        <li>Check if the item was imported from QuickBooks (Items tab)</li>
+      </ul>
+    </div>
+
+    <h2>📚 Resources</h2>
+
+    <div class="resources-grid">
+      <div class="resource-card">
+        <h3>📖 Documentation</h3>
+        <p>View our <a href="https://github.com/seapigy/procuro-site/tree/main/docs" target="_blank">GitHub Docs</a> for technical guides and API reference.</p>
+      </div>
+
+      <div class="resource-card">
+        <h3>🔒 Privacy Policy</h3>
+        <p>Learn how we protect your data: <a href="/privacy">Privacy Policy</a></p>
+      </div>
+
+      <div class="resource-card">
+        <h3>📜 Terms of Service</h3>
+        <p>Review our terms: <a href="/terms">Terms of Service</a></p>
+      </div>
+
+      <div class="resource-card">
+        <h3>💡 Feature Requests</h3>
+        <p>Have an idea? Email us at <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a></p>
+      </div>
+    </div>
+
+    <h2>🚀 Quick Links</h2>
+
+    <div style="text-align: center;">
+      <a href="/" class="button-link">← Back to Home</a>
+      <a href="https://github.com/seapigy/procuro-site" target="_blank" class="button-link">View on GitHub</a>
+    </div>
+
+    <h2>📞 Contact Information</h2>
+
+    <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 30px 0;">
+      <p><strong>Email Support:</strong> <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a></p>
+      <p><strong>Business Hours:</strong> Monday - Friday, 9 AM - 5 PM PST</p>
+      <p><strong>Response Time:</strong> Typically within 24 hours (weekdays)</p>
+      <p><strong>Emergency Issues:</strong> Use subject line "URGENT" for critical bugs or security concerns</p>
+    </div>
+
+    <h2>🐛 Report a Bug</h2>
+
+    <p>Found a bug? Please email us with:</p>
     <ul>
-      <li>
-        <b>Connection issues:</b> If QuickBooks data isn't importing, click "Reconnect QuickBooks" on your dashboard. 
-        Ensure you've granted all required permissions during the OAuth flow.
-      </li>
-      <li>
-        <b>Price data:</b> Procuro checks trusted retailer APIs daily (Amazon, Walmart, Target) to ensure accuracy. 
-        Prices are updated automatically, and you'll receive alerts when better deals are found.
-      </li>
-      <li>
-        <b>Security:</b> We never store your QuickBooks credentials or financial data. 
-        We only access purchase history and vendor information needed to find savings opportunities.
-      </li>
-      <li>
-        <b>Disconnecting:</b> You can disconnect Procuro from your QuickBooks account at any time via the 
-        QuickBooks Apps settings page or by contacting our support team.
-      </li>
-      <li>
-        <b>Savings calculations:</b> Estimated savings are based on your purchase frequency and current retail prices. 
-        Actual savings may vary based on shipping costs, taxes, and availability.
-      </li>
-    </ul>
-    
-    <h2>Technical Support</h2>
-    <p>
-      If you're experiencing technical issues, please include the following information when contacting support:
-    </p>
-    <ul>
-      <li>Your QuickBooks company name</li>
-      <li>Browser and version</li>
       <li>Description of the issue</li>
-      <li>Any error messages you're seeing</li>
+      <li>Steps to reproduce</li>
+      <li>Browser and operating system</li>
+      <li>Screenshots (if applicable)</li>
     </ul>
-    
-    <h2>Feature Requests</h2>
-    <p>
-      We're constantly improving Procuro! If you have ideas for new features or improvements, 
-      we'd love to hear from you at <a href="mailto:feedback@procuroapp.com">feedback@procuroapp.com</a>.
-    </p>
-    
-    <hr style="margin: 40px 0; border: none; border-top: 1px solid #e5e7eb;" />
-    
-    <p style="text-align: center; color: #6b7280; font-size: 14px;">
-      <a href="/privacy">Privacy Policy</a> | 
-      <a href="/terms">Terms of Use</a> | 
-      <a href="/">Dashboard</a>
-    </p>
+    <p>We'll investigate and respond within 48 hours.</p>
+
+    <div class="footer">
+      <p>© 2025 Procuro. All rights reserved.</p>
+      <p>
+        <a href="/">Home</a> | 
+        <a href="/privacy">Privacy Policy</a> | 
+        <a href="/terms">Terms of Service</a>
+      </p>
+    </div>
   </div>
 </body>
 </html>
-

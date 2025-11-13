@@ -1,0 +1,46 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0077C5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00A699;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1280" height="640" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="80" fill="white" opacity="0.1"/>
+  <circle cx="1180" cy="540" r="100" fill="white" opacity="0.1"/>
+  <circle cx="1100" cy="150" r="60" fill="white" opacity="0.15"/>
+  
+  <!-- Logo icon (left side) -->
+  <g transform="translate(80, 180)">
+    <circle cx="140" cy="140" r="140" fill="white" opacity="0.2"/>
+    <circle cx="140" cy="140" r="120" fill="white"/>
+    <!-- Shopping cart with dollar sign -->
+    <g transform="translate(60, 60)">
+      <path d="M140 50 L150 50 L140 140 L40 140 L30 50 L40 50" stroke="#0077C5" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <rect x="45" y="60" width="80" height="65" rx="6" fill="#0077C5" opacity="0.2"/>
+      <text x="85" y="105" font-family="Arial" font-size="50" font-weight="bold" fill="#0077C5" text-anchor="middle">$</text>
+      <circle cx="55" cy="155" r="8" fill="#0077C5"/>
+      <circle cx="120" cy="155" r="8" fill="#0077C5"/>
+    </g>
+  </g>
+  
+  <!-- Main Text -->
+  <text x="450" y="240" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white">Procuro</text>
+  <text x="450" y="310" font-family="Arial, sans-serif" font-size="42" fill="white" opacity="0.95">Save money on what you already buy</text>
+  
+  <!-- Features -->
+  <g transform="translate(450, 350)">
+    <text y="30" font-family="Arial, sans-serif" font-size="28" fill="white">✓ Embedded in QuickBooks Online</text>
+    <text y="75" font-family="Arial, sans-serif" font-size="28" fill="white">✓ Real-time price comparison</text>
+    <text y="120" font-family="Arial, sans-serif" font-size="28" fill="white">✓ Instant savings alerts</text>
+  </g>
+  
+  <!-- Call to action -->
+  <rect x="450" y="530" width="320" height="60" rx="30" fill="white"/>
+  <text x="610" y="570" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0077C5" text-anchor="middle">Get Started Free</text>
+</svg>
+
