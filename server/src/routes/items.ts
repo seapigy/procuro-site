@@ -245,4 +245,72 @@ router.patch('/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/items/check-price/:id
+ * Check current prices across all retailers for an item
+ */
+router.get('/check-price/:id', async (req: Request, res: Response) => {
+  try {
+    const itemId = parseInt(req.params.id);
+
+    // Load item
+    const item = await prisma.item.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    console.log(`\n🔍 Checking prices for: ${item.name} (ID: ${itemId})`);
+
+    // Import aggregateProviders
+    const { aggregateProviders } = await import('../providers/aggregateProvider');
+
+    // Run price check across all providers
+    const results = await aggregateProviders({
+      keyword: item.name,
+      sku: item.sku || undefined,
+      timeout: 15000, // 15 seconds per provider
+      itemId: item.id,
+      lastPaidPrice: item.lastPaidPrice,
+    });
+
+    // Filter valid results
+    const validResults = results.filter(r => r.price !== null && r.price > 0);
+
+    // Calculate savings for each result
+    const resultsWithSavings = validResults.map(result => ({
+      retailer: result.retailer,
+      price: result.price,
+      url: result.url,
+      stock: result.stock,
+      title: result.title,
+      image: result.image,
+      savings: item.lastPaidPrice - (result.price || 0),
+      savingsPercent: ((item.lastPaidPrice - (result.price || 0)) / item.lastPaidPrice) * 100,
+    }));
+
+    console.log(`\n✅ Price check complete: ${validResults.length} retailers found\n`);
+
+    res.json({
+      success: true,
+      item: {
+        id: item.id,
+        name: item.name,
+        lastPaidPrice: item.lastPaidPrice,
+      },
+      results: resultsWithSavings,
+      count: validResults.length,
+      bestPrice: validResults[0] || null,
+    });
+  } catch (error) {
+    console.error('Error checking prices:', error);
+    res.status(500).json({
+      error: 'Failed to check prices',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 export default router;
