@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Package, Search, X, Check, Edit2, XCircle } from 'lucide-react';
+import { Package, Search, X, Check, Edit2, XCircle, DollarSign, ExternalLink, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { LoadingState } from './ui/spinner';
 import { EmptyState } from './ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { checkAllRetailers, BrowserPriceResult } from '../providers_browser';
 
 interface Item {
   id: number;
@@ -16,14 +18,20 @@ interface Item {
   reorderIntervalDays: number;
 }
 
+interface ItemWithPriceCheck extends Item {
+  priceResults?: BrowserPriceResult[];
+  checkingPrice?: boolean;
+}
+
 export function Items() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<ItemWithPriceCheck[]>([]);
+  const [filteredItems, setFilteredItems] = useState<ItemWithPriceCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Partial<Item>>({});
   const [saving, setSaving] = useState(false);
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -54,7 +62,7 @@ export function Items() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/items');
+      const res = await fetch('/api/items');
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -91,7 +99,7 @@ export function Items() {
 
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/items/${itemId}`, {
+      const res = await fetch(`/api/items/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editValues)
@@ -131,6 +139,67 @@ export function Items() {
       style: 'currency',
       currency: 'USD'
     }).format(price);
+  };
+
+  const checkPriceForItem = async (item: ItemWithPriceCheck) => {
+    // Set loading state
+    setItems(prev => prev.map(i => 
+      i.id === item.id ? { ...i, checkingPrice: true, priceResults: [] } : i
+    ));
+    setFilteredItems(prev => prev.map(i => 
+      i.id === item.id ? { ...i, checkingPrice: true, priceResults: [] } : i
+    ));
+    setExpandedItemId(item.id);
+
+    try {
+      console.log(`Starting price check for: ${item.name}`);
+      
+      // Run all browser providers in parallel
+      const results = await checkAllRetailers(item.name);
+      
+      console.log(`Price check complete: ${results.length} results`);
+
+      // Update items with results
+      setItems(prev => prev.map(i => 
+        i.id === item.id ? { ...i, checkingPrice: false, priceResults: results } : i
+      ));
+      setFilteredItems(prev => prev.map(i => 
+        i.id === item.id ? { ...i, checkingPrice: false, priceResults: results } : i
+      ));
+
+      // Send results to backend
+      if (results.length > 0) {
+        try {
+          const response = await fetch('/api/store-price/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              itemId: item.id,
+              results: results
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ Stored ${data.pricesStored} prices, created ${data.alertsCreated} alerts`);
+          }
+        } catch (error) {
+          console.error('Error storing prices:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking prices:', error);
+      setItems(prev => prev.map(i => 
+        i.id === item.id ? { ...i, checkingPrice: false } : i
+      ));
+      setFilteredItems(prev => prev.map(i => 
+        i.id === item.id ? { ...i, checkingPrice: false } : i
+      ));
+    }
+  };
+
+  const toggleExpanded = (itemId: number) => {
+    setExpandedItemId(expandedItemId === itemId ? null : itemId);
   };
 
   if (loading) {
@@ -216,11 +285,12 @@ export function Items() {
                 </TableHeader>
                 <TableBody>
                   {filteredItems.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      data-item-id={item.id}
-                      className="transition-colors"
-                    >
+                    <>
+                      <TableRow
+                        key={item.id}
+                        data-item-id={item.id}
+                        className="transition-colors"
+                      >
                       <TableCell>
                         {editingId === item.id ? (
                           <input
@@ -308,17 +378,140 @@ export function Items() {
                             </Button>
                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => startEditing(item)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startEditing(item)}
+                              className="h-8 w-8 p-0"
+                              title="Edit item"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => checkPriceForItem(item)}
+                              disabled={item.checkingPrice}
+                              className="gap-1"
+                              title="Check prices across retailers"
+                            >
+                              {item.checkingPrice ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span>Checking...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <DollarSign className="h-3 w-3" />
+                                  <span>Check Price</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
+                    
+                    {/* Expandable Price Results Row */}
+                    {expandedItemId === item.id && (item.priceResults || item.checkingPrice) && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="bg-muted/50 p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm">Price Check Results</h4>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleExpanded(item.id)}
+                                className="h-6 px-2"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            
+                            {item.checkingPrice ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                                <span className="text-sm text-muted-foreground">
+                                  Checking prices across 6 retailers...
+                                </span>
+                              </div>
+                            ) : item.priceResults && item.priceResults.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {item.priceResults.map((result, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`rounded-lg border p-3 ${
+                                      result.price && result.price < item.lastPaidPrice
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/10'
+                                        : 'border-border bg-background'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between mb-2">
+                                      <h5 className="font-semibold text-sm">{result.retailer}</h5>
+                                      {result.stock !== null && (
+                                        <Badge
+                                          variant={result.stock ? 'default' : 'secondary'}
+                                          className="text-xs"
+                                        >
+                                          {result.stock ? 'In Stock' : 'Out of Stock'}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {result.price ? (
+                                      <>
+                                        <div className="text-2xl font-bold text-primary mb-1">
+                                          {formatPrice(result.price)}
+                                        </div>
+                                        {result.price < item.lastPaidPrice && (
+                                          <div className="text-xs text-green-600 dark:text-green-500 font-semibold mb-2">
+                                            Save {formatPrice(item.lastPaidPrice - result.price)} (
+                                            {(((item.lastPaidPrice - result.price) / item.lastPaidPrice) * 100).toFixed(1)}
+                                            % off)
+                                          </div>
+                                        )}
+                                        {result.url && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            asChild
+                                            className="w-full mt-2"
+                                          >
+                                            <a
+                                              href={result.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center justify-center gap-2"
+                                            >
+                                              View Deal
+                                              <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                          </Button>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className="text-sm text-muted-foreground">
+                                        <Badge variant="secondary" className="mb-2">No Data</Badge>
+                                        <p className="text-xs">
+                                          {result.error || 'Price not available'}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-sm text-muted-foreground">
+                                No price data available
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
                   ))}
                 </TableBody>
               </Table>

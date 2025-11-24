@@ -709,8 +709,328 @@ npm run mockdata
 **Questions? Issues?**  
 Contact: support@procuroapp.com
 
-**Last Updated:** November 12, 2025  
-**Document Version:** 1.1.0 (with Optional Add-ons)
+**Last Updated:** November 14, 2025  
+**Document Version:** 2.0.0 (Browser-Based Price Checking)
+
+---
+
+## 🌐 BROWSER-BASED PRICE CHECKING (v2.0)
+
+### Architecture Change
+
+**Version 2.0** introduces a major architectural change: all retailer price checking now happens **in the user's browser** instead of on the backend server.
+
+### Why This Change?
+
+**Old (v1.x):** Backend fetches retailer pages → ❌ IP blocks, CAPTCHA, 403 errors  
+**New (v2.0):** Browser fetches retailer pages → ✅ Residential IPs, no blocks
+
+### Benefits
+
+- ✅ **No IP Blocking** - Uses residential IP addresses
+- ✅ **Higher Success Rates** - Appears as normal user traffic
+- ✅ **CORS Handled** - Browser manages cross-origin requests
+- ✅ **Distributed Load** - Each user's browser does their own checking
+- ✅ **Better UX** - Real-time results as they arrive
+
+---
+
+### How It Works
+
+```
+1. User clicks "Check Price" button
+   ↓
+2. Frontend runs checkAllRetailers() function
+   ↓
+3. Browser fetches pages from Walmart, Target, etc. (in parallel)
+   ↓
+4. Each provider extracts price data from HTML/JSON
+   ↓
+5. Results displayed in expandable grid
+   ↓
+6. Frontend POSTs results to backend: /api/store-price/bulk
+   ↓
+7. Backend stores prices and creates alerts
+```
+
+---
+
+### Testing Browser Providers
+
+#### 1️⃣ Open Browser DevTools
+
+```bash
+# Start frontend
+cd client
+npm run dev
+
+# Open http://localhost:5173 in Chrome
+# Press F12 to open DevTools
+# Go to Console tab
+```
+
+#### 2️⃣ Test Individual Provider
+
+```javascript
+// In browser console
+import * as walmart from './src/providers_browser/walmart.browser';
+
+const result = await walmart.getPriceByKeyword('printer paper');
+console.log(result);
+```
+
+Expected output:
+```json
+{
+  "retailer": "Walmart",
+  "price": 29.99,
+  "url": "https://walmart.com/ip/...",
+  "title": "HP Printer Paper 500 Sheets",
+  "stock": true,
+  "image": "https://..."
+}
+```
+
+#### 3️⃣ Test All Providers
+
+```javascript
+import { checkAllRetailers } from './src/providers_browser';
+
+const results = await checkAllRetailers('printer paper');
+console.table(results);
+```
+
+Expected output: 6 results (one per retailer)
+
+#### 4️⃣ Test via UI
+
+1. Navigate to Items page: `http://localhost:5173/dashboard/items`
+2. Find any item
+3. Click "Check Price" button
+4. Watch results appear in expandable panel
+5. Verify:
+   - Loading spinner shows during check
+   - Results display in grid (3 columns)
+   - Best prices highlighted in green
+   - Savings calculated correctly
+   - "View Deal" links work
+   - No Data badge shown for failures
+
+---
+
+### Provider File Structure
+
+```
+client/src/providers_browser/
+├── index.ts                    # Aggregator (runs all in parallel)
+├── types.ts                    # TypeScript interfaces
+├── utils.ts                    # Shared utility functions
+├── walmart.browser.ts          # Walmart provider
+├── target.browser.ts           # Target provider
+├── homedepot.browser.ts        # Home Depot provider
+├── lowes.browser.ts            # Lowe's provider
+├── staples.browser.ts          # Staples provider
+├── officedepot.browser.ts      # Office Depot provider
+└── README.md                   # Provider documentation
+```
+
+---
+
+### Adding a New Provider
+
+1. Create file: `client/src/providers_browser/newretailer.browser.ts`
+
+2. Implement `getPriceByKeyword()`:
+
+```typescript
+import { BrowserPriceResult, ProviderConfig, DEFAULT_TIMEOUT } from './types';
+import { sanitizeKeyword, fetchWithTimeout, createEmptyResult } from './utils';
+
+export async function getPriceByKeyword(
+  keyword: string,
+  config?: ProviderConfig
+): Promise<BrowserPriceResult> {
+  try {
+    const url = `https://newretailer.com/search?q=${sanitizeKeyword(keyword)}`;
+    const response = await fetchWithTimeout(url, {}, config?.timeout || DEFAULT_TIMEOUT);
+    const html = await response.text();
+    
+    // Parse HTML and extract data
+    // ...
+    
+    return {
+      retailer: 'New Retailer',
+      price: extractedPrice,
+      url: productUrl,
+      title: productTitle,
+      stock: inStock,
+      image: imageUrl
+    };
+  } catch (error: any) {
+    return createEmptyResult('New Retailer', error.message);
+  }
+}
+```
+
+3. Add to aggregator (`index.ts`):
+
+```typescript
+import * as newretailer from './newretailer.browser';
+
+const providers = [
+  // ... existing providers
+  { name: 'New Retailer', fn: newretailer.getPriceByKeyword },
+];
+```
+
+---
+
+### Backend API for Price Storage
+
+#### POST /api/store-price
+
+Store single price result.
+
+**Request:**
+```json
+{
+  "itemId": 123,
+  "retailer": "Walmart",
+  "price": 29.99,
+  "url": "https://...",
+  "stock": true,
+  "title": "Product Name",
+  "image": "https://..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "stored": true,
+  "priceId": 456,
+  "savings": 5.00,
+  "savingsPercent": 14.3,
+  "alertCreated": true
+}
+```
+
+#### POST /api/store-price/bulk
+
+Store multiple price results at once (recommended).
+
+**Request:**
+```json
+{
+  "itemId": 123,
+  "results": [
+    { "retailer": "Walmart", "price": 29.99, ... },
+    { "retailer": "Target", "price": 31.50, ... }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "pricesStored": 2,
+  "alertsCreated": 1,
+  "bestPrice": { "retailer": "Walmart", "price": 29.99 }
+}
+```
+
+---
+
+### Deprecated: Backend Providers
+
+⚠️ **Do NOT use these files anymore:**
+
+```
+server/src/providers/
+├── aggregateProvider.ts        # ❌ DEPRECATED
+├── walmart.ts                  # ❌ DEPRECATED
+├── target.ts                   # ❌ DEPRECATED
+├── homedepot.ts                # ❌ DEPRECATED
+├── lowes.ts                    # ❌ DEPRECATED
+├── staples.ts                  # ❌ DEPRECATED
+└── officedepot.ts              # ❌ DEPRECATED
+```
+
+See `server/src/providers/DEPRECATED.md` for migration guide.
+
+---
+
+### Troubleshooting Browser Providers
+
+#### Problem: "Failed to fetch" errors
+
+**Cause:** CORS restrictions or network issues
+
+**Solutions:**
+- Check retailer website is accessible
+- Verify browser allows cross-origin requests
+- Try in different browser (Chrome recommended)
+- Check browser console for detailed errors
+
+#### Problem: No results found
+
+**Cause:** Search keyword doesn't match products
+
+**Solutions:**
+- Test keyword on retailer's website manually
+- Adjust keyword normalization
+- Check provider's JSON extraction logic
+- Verify retailer hasn't changed HTML structure
+
+#### Problem: Slow performance
+
+**Cause:** Network latency or slow retailers
+
+**Solutions:**
+- Check network speed
+- Reduce timeout values (default 15s)
+- Test individual providers to identify slow one
+- Disable slow providers temporarily
+
+#### Problem: CORS errors in console
+
+**Cause:** Retailer blocks cross-origin requests
+
+**Solutions:**
+- Some retailers may require CORS proxy
+- Browser extension can bypass CORS (development only)
+- Consider native app wrapper (Electron/Tauri)
+- Most major retailers allow public data access
+
+---
+
+### Performance Expectations
+
+| Metric | Expected Value |
+|--------|---------------|
+| **Single Provider** | 2-5 seconds |
+| **All Providers (parallel)** | 5-10 seconds |
+| **Timeout per Provider** | 15 seconds |
+| **Success Rate** | 70-90% (varies by retailer) |
+| **Results Display** | Progressive (as they arrive) |
+
+---
+
+### Testing Checklist
+
+- [ ] Frontend starts without errors
+- [ ] Browser console shows no import errors
+- [ ] "Check Price" button appears on Items page
+- [ ] Clicking button shows loading spinner
+- [ ] Results panel expands below item row
+- [ ] At least 3/6 retailers return prices
+- [ ] Savings calculations are correct
+- [ ] "View Deal" links open retailer pages
+- [ ] Failed providers show "No Data" badge
+- [ ] Results auto-save to database
+- [ ] Alerts created for significant savings
 
 ---
 

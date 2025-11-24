@@ -48,7 +48,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const handleBackup = async () => {
     setDownloading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/backup');
+      const response = await fetch('/api/backup');
       
       if (!response.ok) {
         throw new Error('Failed to download backup');

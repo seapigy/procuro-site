@@ -10,8 +10,10 @@ import alertsRoutes from './routes/alerts';
 import savingsRoutes from './routes/savings';
 import invitesRoutes from './routes/invites';
 import backupRoutes from './routes/backup';
+import storePriceRoutes from './routes/store-price';
+import providersRoutes from './routes/providers';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { prisma } from './prisma';
+import prisma from './lib/prisma';
 import appConfig from '../../config/app.json';
 import { startDailyPriceCheckCron } from './workers/dailyPriceCheck';
 import { startTokenRefreshCron } from './workers/tokenRefresh';
@@ -22,9 +24,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration
+// CORS configuration - Allow multiple origins for dev
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://dev.procuroapp.com:5173',
+  ...(process.env.CORS_ORIGINS?.split(',') || []),
+];
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ CORS blocked origin: ${origin}`);
+      callback(null, false); // Allow anyway for dev, but log warning
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -136,6 +155,8 @@ app.use('/api/alerts', alertsRoutes);
 app.use('/api', savingsRoutes);
 app.use('/api', invitesRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/store-price', storePriceRoutes);
+app.use('/api/provider', providersRoutes); // Backend provider proxies
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);

@@ -42,9 +42,9 @@ export class TargetProvider {
     try {
       console.log(`🔍 Searching Target for: "${name}"`);
 
-      const url = `https://redsky.target.com/redsky_aggregations/v1/web/plp_product_v1?keyword=${encodeURIComponent(name)}&key=${TargetProvider.apiKey}`;
+      const apiUrl = `https://redsky.target.com/redsky_aggregations/v1/web/plp_product_v1?keyword=${encodeURIComponent(name)}&key=${TargetProvider.apiKey}`;
       
-      const response = await fetch(url, {
+      const response = await fetch(apiUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },

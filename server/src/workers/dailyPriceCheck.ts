@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { prisma } from '../prisma';
+import prisma from '../lib/prisma';
 import appConfig from '../../../config/app.json';
 
 /**

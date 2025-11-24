@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import axios from 'axios';
-import { prisma } from '../prisma';
+import prisma from '../lib/prisma';
 import appConfig from '../../../config/app.json';
 import { encryptTokens } from '../utils/crypto';
 

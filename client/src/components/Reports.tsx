@@ -42,8 +42,8 @@ export function Reports() {
   const fetchData = async () => {
     try {
       const [summaryRes, alertsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/savings-summary'),
-        fetch('http://localhost:5000/api/alerts')
+        fetch('/api/savings-summary'),
+        fetch('/api/alerts')
       ]);
 
       if (summaryRes.ok) {

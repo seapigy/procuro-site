@@ -72,8 +72,8 @@ export function Dashboard() {
   const fetchData = async () => {
     try {
       const [itemsRes, alertsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/items'),
-        fetch('http://localhost:5000/api/alerts'),
+        fetch('/api/items'),
+        fetch('/api/alerts'),
       ]);
 
       if (itemsRes.ok) {
@@ -94,7 +94,7 @@ export function Dashboard() {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/alerts/unreadCount');
+      const res = await fetch('/api/alerts/unreadCount');
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.unreadCount || 0);
@@ -106,7 +106,7 @@ export function Dashboard() {
 
   const fetchSavingsSummary = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/savings-summary');
+      const res = await fetch('/api/savings-summary');
       if (res.ok) {
         const data = await res.json();
         setSavingsSummary(data);
@@ -124,7 +124,7 @@ export function Dashboard() {
 
     // Mark all as seen
     try {
-      const res = await fetch('http://localhost:5000/api/alerts/markAllSeen', {
+      const res = await fetch('/api/alerts/markAllSeen', {
         method: 'POST',
       });
       if (res.ok) {
@@ -557,7 +557,7 @@ export function Dashboard() {
                     Connect your QuickBooks account to import purchase history
                   </p>
                   <a
-                    href="http://localhost:5000/api/qb/connect"
+                    href="/api/qb/connect"
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 w-full"
                   >
                     Connect QuickBooks
