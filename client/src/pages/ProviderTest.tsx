@@ -88,8 +88,24 @@ export function ProviderTest() {
   /**
    * VALIDATE RETAILER HTML
    * Ensures we're getting real retailer HTML, not Vite dev server HTML
+   * Note: Some providers (like Target) use API calls and don't return HTML
    */
-  const validateRetailerHTML = (html: string, retailerName: string): { valid: boolean; error?: string } => {
+  const validateRetailerHTML = (html: string | undefined | null, retailerName: string): { valid: boolean; error?: string } => {
+    // API-based providers (like Target RedSky API) don't return HTML
+    const apiBasedProviders = ['target'];
+    if (apiBasedProviders.includes(retailerName.toLowerCase())) {
+      // For API-based providers, HTML validation is not applicable
+      return { valid: true };
+    }
+
+    // If HTML is missing for non-API providers, that's an error
+    if (!html || typeof html !== 'string') {
+      return {
+        valid: false,
+        error: 'No HTML response received',
+      };
+    }
+
     // Check if it's the Vite dev server index.html
     if (html.includes('<title>ProcuroApp') || html.includes('Vite') || html.includes('/src/main.tsx')) {
       return {
@@ -144,12 +160,25 @@ export function ProviderTest() {
       const endpoint = `/api/provider/${retailer.toLowerCase().replace(/\s+/g, '')}?keyword=${encodeURIComponent(keyword)}`;
       
       console.log(`🔌 Calling backend provider: ${endpoint}`);
+      console.log(`🔵 Full URL would be: ${window.location.origin}${endpoint}`);
       
       const res = await fetch(endpoint);
+      console.log(`🔵 Response status: ${res.status} ${res.statusText}`);
+      
+      if (!res.ok) {
+        console.error(`🔴 Response not OK: ${res.status} ${res.statusText}`);
+        const errorText = await res.text();
+        console.error(`🔴 Error response body:`, errorText);
+      }
+      
       const data = await res.json();
+      console.log(`🔵 Response data:`, data);
       
       return data;
     } catch (error: any) {
+      console.error(`🔴 fetchFromBackendProvider error:`, error);
+      console.error(`🔴 Error message:`, error.message);
+      console.error(`🔴 Error stack:`, error.stack);
       return {
         success: false,
         html: '',
@@ -164,6 +193,8 @@ export function ProviderTest() {
    * TEST A PROVIDER - BACKEND PROXY (NO CORS!)
    */
   const testProvider = async (providerName: string) => {
+    console.log(`🔵 testProvider called with: ${providerName}, keyword: ${keyword}`);
+    
     if (!keyword.trim()) {
       setError('Please enter a keyword');
       return;
@@ -182,6 +213,7 @@ export function ProviderTest() {
 
       // Call backend provider proxy (NO CORS!)
       const backendResponse = await fetchFromBackendProvider(providerName, keyword);
+      console.log(`🔵 Backend response received:`, backendResponse);
 
       // Validate the HTML
       const validation = validateRetailerHTML(backendResponse.html, providerName);
@@ -190,7 +222,7 @@ export function ProviderTest() {
       const debug: DebugInfo = {
         provider: providerName,
         url: backendResponse.url || '',
-        htmlSize: backendResponse.html.length,
+        htmlSize: backendResponse.html?.length || 0,
         timestamp: new Date().toLocaleString(),
         validHTML: validation.valid && backendResponse.success,
         errorMessage: backendResponse.error || validation.error,
@@ -581,66 +613,42 @@ export function ProviderTest() {
 
                 <Button
                   onClick={() => testProvider('Target')}
-                  disabled={testing}
-                  className="w-full"
-                  variant={currentProvider === 'Target' ? 'default' : 'outline'}
+                  disabled={true}
+                  className="w-full opacity-50 cursor-not-allowed"
+                  variant="outline"
+                  title="Target provider temporarily disabled - loads data dynamically"
                 >
-                  {currentProvider === 'Target' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Testing Target...
-                    </>
-                  ) : (
-                    '🎯 Test Target (Backend Proxy)'
-                  )}
+                  🎯 Test Target (Disabled)
                 </Button>
 
                 <Button
                   onClick={() => testProvider('Home Depot')}
-                  disabled={testing}
-                  className="w-full"
-                  variant={currentProvider === 'Home Depot' ? 'default' : 'outline'}
+                  disabled={true}
+                  className="w-full opacity-50 cursor-not-allowed"
+                  variant="outline"
+                  title="Home Depot provider temporarily disabled - bot detection blocking requests"
                 >
-                  {currentProvider === 'Home Depot' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Testing Home Depot...
-                    </>
-                  ) : (
-                    '🏠 Test Home Depot (Backend Proxy)'
-                  )}
+                  🏠 Test Home Depot (Disabled)
                 </Button>
 
                 <Button
                   onClick={() => testProvider('Lowes')}
-                  disabled={testing}
-                  className="w-full"
-                  variant={currentProvider === 'Lowes' ? 'default' : 'outline'}
+                  disabled={true}
+                  className="w-full opacity-50 cursor-not-allowed"
+                  variant="outline"
+                  title="Lowes provider temporarily disabled - bot detection blocking requests (403 Forbidden)"
                 >
-                  {currentProvider === 'Lowes' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Testing Lowes...
-                    </>
-                  ) : (
-                    '🔨 Test Lowes (Backend Proxy)'
-                  )}
+                  🔨 Test Lowes (Disabled)
                 </Button>
 
                 <Button
                   onClick={() => testProvider('Staples')}
-                  disabled={testing}
-                  className="w-full"
-                  variant={currentProvider === 'Staples' ? 'default' : 'outline'}
+                  disabled={true}
+                  className="w-full opacity-50 cursor-not-allowed"
+                  variant="outline"
+                  title="Staples provider temporarily disabled - search URL pattern changed (404 errors)"
                 >
-                  {currentProvider === 'Staples' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Testing Staples...
-                    </>
-                  ) : (
-                    '📎 Test Staples (Backend Proxy)'
-                  )}
+                  📎 Test Staples (Disabled)
                 </Button>
 
                 <Button

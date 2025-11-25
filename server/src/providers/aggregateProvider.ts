@@ -5,13 +5,10 @@
 
 import { PriceResult } from './types';
 import * as amazon from './amazon';
-import * as walmart from './walmart';
 import * as target from './target';
-import * as homedepot from './homedepot';
-import * as lowes from './lowes';
 import * as staples from './staples';
-import * as officedepot from './officedepot';
 import prisma from '../lib/prisma';
+import fetch from 'node-fetch';
 
 interface AggregateOptions {
   keyword?: string;
@@ -36,40 +33,197 @@ export async function aggregateProviders(options: AggregateOptions): Promise<Pri
   console.log(`   Keyword: ${options.keyword || 'N/A'}`);
   console.log(`   SKU: ${options.sku || 'N/A'}\n`);
 
-  const providers = [
-    { name: 'Amazon', module: amazon },
-    { name: 'Walmart', module: walmart },
-    { name: 'Target', module: target },
-    { name: 'Home Depot', module: homedepot },
-    { name: "Lowe's", module: lowes },
-    { name: 'Staples', module: staples },
-    { name: 'Office Depot', module: officedepot },
-  ];
+  const API_BASE = process.env.API_BASE_URL || 'http://localhost:5000';
 
   // Run all providers in parallel
-  const promises = providers.map(async (provider) => {
-    try {
-      const result = options.keyword
-        ? await provider.module.getPriceByKeyword(options.keyword, { timeout: options.timeout })
-        : options.sku
-        ? await provider.module.getPriceBySKU(options.sku, { timeout: options.timeout })
-        : null;
-
-      return {
-        retailer: provider.name,
-        result: result || createEmptyResult(provider.name),
-        status: 'fulfilled' as const,
-      };
-    } catch (error) {
-      console.error(`❌ ${provider.name} failed:`, error instanceof Error ? error.message : error);
-      return {
-        retailer: provider.name,
-        result: createEmptyResult(provider.name),
-        status: 'rejected' as const,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  });
+  const promises = [
+    // Amazon - keep using module (PA-API)
+    (async () => {
+      try {
+        const result = options.keyword
+          ? await amazon.getPriceByKeyword(options.keyword, { timeout: options.timeout })
+          : options.sku
+          ? await amazon.getPriceBySKU(options.sku, { timeout: options.timeout })
+          : null;
+        return {
+          retailer: 'Amazon',
+          result: result || createEmptyResult('Amazon'),
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Amazon failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Amazon',
+          result: createEmptyResult('Amazon'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Walmart - use backend API route
+    (async () => {
+      try {
+        if (!options.keyword) {
+          return {
+            retailer: 'Walmart',
+            result: createEmptyResult('Walmart'),
+            status: 'fulfilled' as const,
+          };
+        }
+        const response = await fetch(`${API_BASE}/api/provider/walmart?keyword=${encodeURIComponent(options.keyword)}`);
+        const data = await response.json();
+        const parsed = data.parsed || createEmptyResult('Walmart');
+        return {
+          retailer: 'Walmart',
+          result: parsed,
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Walmart failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Walmart',
+          result: createEmptyResult('Walmart'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Target - use backend API route (HTML scraping)
+    (async () => {
+      try {
+        if (!options.keyword) {
+          return {
+            retailer: 'Target',
+            result: createEmptyResult('Target'),
+            status: 'fulfilled' as const,
+          };
+        }
+        const response = await fetch(`${API_BASE}/api/provider/target?keyword=${encodeURIComponent(options.keyword)}`);
+        const data = await response.json();
+        const parsed = data.parsed || createEmptyResult('Target');
+        return {
+          retailer: 'Target',
+          result: parsed,
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Target failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Target',
+          result: createEmptyResult('Target'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Home Depot - use backend API route
+    (async () => {
+      try {
+        if (!options.keyword) {
+          return {
+            retailer: 'Home Depot',
+            result: createEmptyResult('Home Depot'),
+            status: 'fulfilled' as const,
+          };
+        }
+        const response = await fetch(`${API_BASE}/api/provider/homedepot?keyword=${encodeURIComponent(options.keyword)}`);
+        const data = await response.json();
+        const parsed = data.parsed || createEmptyResult('Home Depot');
+        return {
+          retailer: 'Home Depot',
+          result: parsed,
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Home Depot failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Home Depot',
+          result: createEmptyResult('Home Depot'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Lowes - use backend API route
+    (async () => {
+      try {
+        if (!options.keyword) {
+          return {
+            retailer: "Lowe's",
+            result: createEmptyResult("Lowe's"),
+            status: 'fulfilled' as const,
+          };
+        }
+        const response = await fetch(`${API_BASE}/api/provider/lowes?keyword=${encodeURIComponent(options.keyword)}`);
+        const data = await response.json();
+        const parsed = data.parsed || createEmptyResult("Lowe's");
+        return {
+          retailer: "Lowe's",
+          result: parsed,
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Lowes failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: "Lowe's",
+          result: createEmptyResult("Lowe's"),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Staples - keep using module
+    (async () => {
+      try {
+        const result = options.keyword
+          ? await staples.getPriceByKeyword(options.keyword, { timeout: options.timeout })
+          : options.sku
+          ? await staples.getPriceBySKU(options.sku, { timeout: options.timeout })
+          : null;
+        return {
+          retailer: 'Staples',
+          result: result || createEmptyResult('Staples'),
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Staples failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Staples',
+          result: createEmptyResult('Staples'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+    // Office Depot - use backend API route
+    (async () => {
+      try {
+        if (!options.keyword) {
+          return {
+            retailer: 'Office Depot',
+            result: createEmptyResult('Office Depot'),
+            status: 'fulfilled' as const,
+          };
+        }
+        const response = await fetch(`${API_BASE}/api/provider/officedepot?keyword=${encodeURIComponent(options.keyword)}`);
+        const data = await response.json();
+        const parsed = data.parsed || createEmptyResult('Office Depot');
+        return {
+          retailer: 'Office Depot',
+          result: parsed,
+          status: 'fulfilled' as const,
+        };
+      } catch (error) {
+        console.error(`❌ Office Depot failed:`, error instanceof Error ? error.message : error);
+        return {
+          retailer: 'Office Depot',
+          result: createEmptyResult('Office Depot'),
+          status: 'rejected' as const,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    })(),
+  ];
 
   const results = await Promise.allSettled(promises);
 

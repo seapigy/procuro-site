@@ -5,6 +5,11 @@
 
 import { Router, Request, Response } from 'express';
 import { fetchHtmlWithRetries, extractJsonFromHtml, parsePrice } from '../utils/fetchHtml';
+import { parseWalmartHtml } from '../providers/parsers/walmartParser';
+import { parseTargetHtml } from '../providers/parsers/targetParser';
+import { parseHomeDepotHtml } from '../providers/parsers/homedepotParser';
+import { parseLowesHtml } from '../providers/parsers/lowesParser';
+import { parseOfficeDepotHtml } from '../providers/parsers/officedepotParser';
 
 const router = Router();
 
@@ -37,52 +42,13 @@ router.get('/walmart', async (req: Request, res: Response) => {
       });
     }
 
-    // Extract embedded JSON
-    const pattern = /window\.__WML_REDUX_INITIAL_STATE__\s*=\s*({.*?});?\s*<\/script>/s;
-    const data = extractJsonFromHtml(html, pattern);
+    // Use new __NEXT_DATA__ parser
+    const parsed = parseWalmartHtml(html);
 
-    let parsedResult = null;
-
-    if (data && data.searchContent && data.searchContent.searchContent) {
-      const searchResults = data.searchContent.searchContent;
-      const items = searchResults.preso?.items || searchResults.items || [];
-
-      if (items.length > 0) {
-        // Find the lowest priced item
-        let lowestPrice: number | null = null;
-        let bestItem: any = null;
-
-        for (const item of items) {
-          if (!item.price || !item.availabilityStatusV2?.display) continue;
-
-          const currentPrice = parsePrice(item.price);
-          if (currentPrice && (lowestPrice === null || currentPrice < lowestPrice)) {
-            lowestPrice = currentPrice;
-            bestItem = item;
-          }
-        }
-
-        if (bestItem) {
-          const productUrl = bestItem.canonicalUrl
-            ? `https://www.walmart.com${bestItem.canonicalUrl}`
-            : bestItem.productPageUrl || null;
-
-          const isInStock =
-            bestItem.availabilityStatusV2?.display === 'In stock' ||
-            bestItem.availabilityStatusV2?.value === 'IN_STOCK';
-
-          parsedResult = {
-            retailer: 'Walmart',
-            price: lowestPrice,
-            url: productUrl,
-            title: bestItem.name || null,
-            stock: isInStock,
-            image: bestItem.imageInfo?.thumbnailUrl || bestItem.image || null,
-          };
-
-          console.log(`✅ Walmart: Found "${bestItem.name}" at $${lowestPrice?.toFixed(2)}`);
-        }
-      }
+    if (parsed.price && parsed.title) {
+      console.log(`✅ Walmart: Found "${parsed.title}" at $${parsed.price?.toFixed(2)}`);
+    } else {
+      console.log(`⚠️ Walmart: Could not parse product data from HTML`);
     }
 
     res.json({
@@ -90,7 +56,7 @@ router.get('/walmart', async (req: Request, res: Response) => {
       html,
       retailer: 'Walmart',
       url: finalUrl,
-      parsed: parsedResult,
+      parsed: parsed.price ? parsed : null,
     });
   } catch (error: any) {
     console.error('❌ Walmart provider error:', error);
@@ -103,7 +69,7 @@ router.get('/walmart', async (req: Request, res: Response) => {
 });
 
 /**
- * Target Provider - Backend Proxy
+ * Target Provider - Backend Proxy (uses HTML scraping - RedSky API not working)
  */
 router.get('/target', async (req: Request, res: Response) => {
   try {
@@ -117,7 +83,7 @@ router.get('/target', async (req: Request, res: Response) => {
       });
     }
 
-    console.log(`🎯 Target Provider: Searching for "${keyword}"`);
+    console.log(`🎯 Target Provider: Searching for "${keyword}" via HTML scraping`);
 
     const searchUrl = `https://www.target.com/s?searchTerm=${encodeURIComponent(keyword)}`;
     const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl);
@@ -131,34 +97,18 @@ router.get('/target', async (req: Request, res: Response) => {
       });
     }
 
-    // Extract __NEXT_DATA__ JSON
-    const pattern = /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s;
-    const data = extractJsonFromHtml(html, pattern);
+    // Target's HTML doesn't contain product data - it loads dynamically via JavaScript/API
+    // Try to parse what we can from HTML, but it likely won't have product data
+    console.log(`🎯 Target: HTML received, length: ${html.length}`);
+    
+    const parsed = parseTargetHtml(html);
 
-    let parsedResult = null;
-
-    if (data && data.props && data.props.pageProps && data.props.pageProps.initialData) {
-      const searchData = data.props.pageProps.initialData.searchReport;
-      const products = searchData?.products || [];
-
-      if (products.length > 0) {
-        const product = products[0];
-        const price = product.price?.current_retail || null;
-        const productUrl = product.pdpUrl
-          ? `https://www.target.com${product.pdpUrl}`
-          : null;
-
-        parsedResult = {
-          retailer: 'Target',
-          price: price ? parsePrice(price) : null,
-          url: productUrl,
-          title: product.item?.product_description?.title || null,
-          stock: product.fulfillment?.is_out_of_stock === false,
-          image: product.item?.enrichment?.images?.primary_image_url || null,
-        };
-
-        console.log(`✅ Target: Found "${parsedResult.title}" at $${parsedResult.price?.toFixed(2)}`);
-      }
+    if (parsed.price && parsed.title) {
+      console.log(`✅ Target: Found "${parsed.title}" at $${parsed.price?.toFixed(2)}`);
+    } else {
+      console.log(`⚠️ Target: Could not parse product data from HTML`);
+      console.log(`⚠️ Target: Target loads product data dynamically via JavaScript/API calls`);
+      console.log(`⚠️ Target: HTML scraping won't work - need to use RedSky API or headless browser`);
     }
 
     res.json({
@@ -166,14 +116,16 @@ router.get('/target', async (req: Request, res: Response) => {
       html,
       retailer: 'Target',
       url: finalUrl,
-      parsed: parsedResult,
+      parsed: parsed.price && parsed.title ? parsed : null,
     });
   } catch (error: any) {
     console.error('❌ Target provider error:', error);
+    console.error('Error stack:', error?.stack);
     res.json({
       success: false,
-      error: error.message || 'Internal server error',
+      error: error?.message || 'Internal server error',
       retailer: 'Target',
+      parsed: null,
     });
   }
 });
@@ -196,7 +148,22 @@ router.get('/homedepot', async (req: Request, res: Response) => {
     console.log(`🏠 Home Depot Provider: Searching for "${keyword}"`);
 
     const searchUrl = `https://www.homedepot.com/s/${encodeURIComponent(keyword)}`;
-    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl);
+    
+    // Home Depot has aggressive bot detection - use enhanced headers
+    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl, {
+      maxRetries: 3,
+      timeout: 15000,
+      headers: {
+        'Referer': 'https://www.homedepot.com/',
+        'Origin': 'https://www.homedepot.com',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'DNT': '1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      },
+    });
 
     if (error) {
       return res.json({
@@ -207,35 +174,25 @@ router.get('/homedepot', async (req: Request, res: Response) => {
       });
     }
 
-    // Extract window.__APOLLO_STATE__ JSON
-    const pattern = /window\.__APOLLO_STATE__\s*=\s*({.*?});?\s*<\/script>/s;
-    const data = extractJsonFromHtml(html, pattern);
+    // Check if Home Depot returned an error page (bot detection)
+    if (html.includes('Oops!! Something went wrong') || html.includes('Error Page')) {
+      console.log(`⚠️ Home Depot: Bot detection triggered - received error page`);
+      return res.json({
+        success: false,
+        error: 'Home Depot bot detection triggered. Please try again later or use a different provider.',
+        retailer: 'Home Depot',
+        url: searchUrl,
+        parsed: null,
+      });
+    }
 
-    let parsedResult = null;
+    // Use dedicated Home Depot parser
+    const parsed = parseHomeDepotHtml(html);
 
-    if (data) {
-      // Home Depot uses complex Apollo cache structure
-      const products = Object.values(data).filter((item: any) =>
-        item.__typename === 'Product' && item.pricing && item.identifiers
-      );
-
-      if (products.length > 0) {
-        const product: any = products[0];
-        const price = product.pricing?.value || null;
-
-        parsedResult = {
-          retailer: 'Home Depot',
-          price: price ? parsePrice(price) : null,
-          url: product.identifiers?.canonicalUrl
-            ? `https://www.homedepot.com${product.identifiers.canonicalUrl}`
-            : null,
-          title: product.identifiers?.productLabel || null,
-          stock: product.availabilityType?.type === 'AVAILABLE',
-          image: product.media?.images?.[0]?.url || null,
-        };
-
-        console.log(`✅ Home Depot: Found "${parsedResult.title}" at $${parsedResult.price?.toFixed(2)}`);
-      }
+    if (parsed.price && parsed.title) {
+      console.log(`✅ Home Depot: Found "${parsed.title}" at $${parsed.price?.toFixed(2)}`);
+    } else {
+      console.log(`⚠️ Home Depot: Could not parse product data from HTML`);
     }
 
     res.json({
@@ -243,7 +200,7 @@ router.get('/homedepot', async (req: Request, res: Response) => {
       html,
       retailer: 'Home Depot',
       url: finalUrl,
-      parsed: parsedResult,
+      parsed: parsed.price ? parsed : null,
     });
   } catch (error: any) {
     console.error('❌ Home Depot provider error:', error);
@@ -273,9 +230,34 @@ router.get('/lowes', async (req: Request, res: Response) => {
     console.log(`🔨 Lowes Provider: Searching for "${keyword}"`);
 
     const searchUrl = `https://www.lowes.com/search?searchTerm=${encodeURIComponent(keyword)}`;
-    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl);
+    
+    // Lowes may have bot detection - use enhanced headers
+    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl, {
+      maxRetries: 3,
+      timeout: 15000,
+      headers: {
+        'Referer': 'https://www.lowes.com/',
+        'Origin': 'https://www.lowes.com',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'DNT': '1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      },
+    });
 
     if (error) {
+      // Check if it's a 403 Forbidden (bot detection)
+      if (error.includes('403') || error.includes('Forbidden')) {
+        return res.json({
+          success: false,
+          error: 'Lowes bot detection triggered (403 Forbidden). Please try again later or use a different provider.',
+          retailer: 'Lowes',
+          url: searchUrl,
+          parsed: null,
+        });
+      }
       return res.json({
         success: false,
         error,
@@ -284,30 +266,13 @@ router.get('/lowes', async (req: Request, res: Response) => {
       });
     }
 
-    // Extract __NEXT_DATA__ JSON
-    const pattern = /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s;
-    const data = extractJsonFromHtml(html, pattern);
+    // Use dedicated Lowes parser
+    const parsed = parseLowesHtml(html);
 
-    let parsedResult = null;
-
-    if (data && data.props && data.props.pageProps) {
-      const products = data.props.pageProps.data?.products || [];
-
-      if (products.length > 0) {
-        const product = products[0];
-        const pricing = product.pricing?.sellingPrice || product.pricing?.originalPrice;
-
-        parsedResult = {
-          retailer: 'Lowes',
-          price: pricing ? parsePrice(pricing) : null,
-          url: product.url ? `https://www.lowes.com${product.url}` : null,
-          title: product.name || null,
-          stock: product.availability?.inStock === true,
-          image: product.imageUrl || null,
-        };
-
-        console.log(`✅ Lowes: Found "${parsedResult.title}" at $${parsedResult.price?.toFixed(2)}`);
-      }
+    if (parsed.price && parsed.title) {
+      console.log(`✅ Lowes: Found "${parsed.title}" at $${parsed.price?.toFixed(2)}`);
+    } else {
+      console.log(`⚠️ Lowes: Could not parse product data from HTML`);
     }
 
     res.json({
@@ -315,7 +280,7 @@ router.get('/lowes', async (req: Request, res: Response) => {
       html,
       retailer: 'Lowes',
       url: finalUrl,
-      parsed: parsedResult,
+      parsed: parsed.price ? parsed : null,
     });
   } catch (error: any) {
     console.error('❌ Lowes provider error:', error);
@@ -344,10 +309,28 @@ router.get('/staples', async (req: Request, res: Response) => {
 
     console.log(`📎 Staples Provider: Searching for "${keyword}"`);
 
-    const searchUrl = `https://www.staples.com/search?query=${encodeURIComponent(keyword)}`;
-    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl);
+    // Try multiple Staples search URL patterns
+    const searchUrl = `https://www.staples.com/s/${encodeURIComponent(keyword)}`;
+    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl, {
+      maxRetries: 3,
+      timeout: 15000,
+      headers: {
+        'Referer': 'https://www.staples.com/',
+        'Origin': 'https://www.staples.com',
+      },
+    });
 
     if (error) {
+      // Check if it's a 404 (URL might be wrong)
+      if (error.includes('404') || error.includes('Not Found')) {
+        return res.json({
+          success: false,
+          error: 'Staples search URL returned 404. The search URL pattern may have changed.',
+          retailer: 'Staples',
+          url: searchUrl,
+          parsed: null,
+        });
+      }
       return res.json({
         success: false,
         error,
@@ -417,10 +400,28 @@ router.get('/officedepot', async (req: Request, res: Response) => {
 
     console.log(`🖊️ Office Depot Provider: Searching for "${keyword}"`);
 
+    // Office Depot search URL
     const searchUrl = `https://www.officedepot.com/catalog/search.do?Ntt=${encodeURIComponent(keyword)}`;
-    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl);
+    const { html, finalUrl, error } = await fetchHtmlWithRetries(searchUrl, {
+      maxRetries: 3,
+      timeout: 15000,
+      headers: {
+        'Referer': 'https://www.officedepot.com/',
+        'Origin': 'https://www.officedepot.com',
+      },
+    });
 
     if (error) {
+      // Check if it's a 404 (URL might be wrong)
+      if (error.includes('404') || error.includes('Not Found')) {
+        return res.json({
+          success: false,
+          error: 'Office Depot search URL returned 404. The search URL pattern may have changed.',
+          retailer: 'Office Depot',
+          url: searchUrl,
+          parsed: null,
+        });
+      }
       return res.json({
         success: false,
         error,
@@ -429,33 +430,13 @@ router.get('/officedepot', async (req: Request, res: Response) => {
       });
     }
 
-    // Extract window.__APP_STATE__ JSON
-    const pattern = /window\.__APP_STATE__\s*=\s*({.*?});?\s*<\/script>/s;
-    const data = extractJsonFromHtml(html, pattern);
+    // Use dedicated Office Depot parser
+    const parsed = parseOfficeDepotHtml(html);
 
-    let parsedResult = null;
-
-    if (data && data.search && data.search.results) {
-      const products = data.search.results;
-
-      if (products.length > 0) {
-        const product = products[0];
-
-        parsedResult = {
-          retailer: 'Office Depot',
-          price: product.pricing?.salePrice || product.pricing?.listPrice
-            ? parsePrice(product.pricing?.salePrice || product.pricing?.listPrice)
-            : null,
-          url: product.url
-            ? `https://www.officedepot.com${product.url}`
-            : null,
-          title: product.name || null,
-          stock: product.inventory?.available === true,
-          image: product.images?.[0]?.url || null,
-        };
-
-        console.log(`✅ Office Depot: Found "${parsedResult.title}" at $${parsedResult.price?.toFixed(2)}`);
-      }
+    if (parsed.price && parsed.title) {
+      console.log(`✅ Office Depot: Found "${parsed.title}" at $${parsed.price?.toFixed(2)}`);
+    } else {
+      console.log(`⚠️ Office Depot: Could not parse product data from HTML`);
     }
 
     res.json({
@@ -463,7 +444,7 @@ router.get('/officedepot', async (req: Request, res: Response) => {
       html,
       retailer: 'Office Depot',
       url: finalUrl,
-      parsed: parsedResult,
+      parsed: parsed.price ? parsed : null,
     });
   } catch (error: any) {
     console.error('❌ Office Depot provider error:', error);
