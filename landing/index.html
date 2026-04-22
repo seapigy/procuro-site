@@ -292,6 +292,7 @@
             <label class="field">
               <span>Email</span>
               <input type="email" name="reply_to" autocomplete="email" required />
+              <p id="contact-email-error" class="field-error" role="alert" aria-live="polite"></p>
             </label>
           </div>
           <label class="field">
@@ -403,6 +404,11 @@
     const contactForm = document.getElementById('contact-form');
     const contactStatus = document.getElementById('contact-status');
     const contactSubmit = document.getElementById('contact-submit');
+    const contactEmailError = document.getElementById('contact-email-error');
+
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
 
     function setContactStatus(message, type) {
       if (!contactStatus) return;
@@ -413,7 +419,32 @@
       }
     }
 
+    function setEmailValidation(message) {
+      const emailInput = contactForm ? contactForm.querySelector('input[name="reply_to"]') : null;
+      if (!emailInput || !contactEmailError) return;
+
+      if (message) {
+        contactEmailError.textContent = message;
+        contactEmailError.classList.add('visible');
+        emailInput.setAttribute('aria-invalid', 'true');
+      } else {
+        contactEmailError.textContent = '';
+        contactEmailError.classList.remove('visible');
+        emailInput.removeAttribute('aria-invalid');
+      }
+    }
+
     if (contactForm && contactStatus && contactSubmit) {
+      const emailInput = contactForm.querySelector('input[name="reply_to"]');
+      if (emailInput) {
+        emailInput.addEventListener('input', () => {
+          const value = String(emailInput.value || '').trim();
+          if (!value || isValidEmail(value)) {
+            setEmailValidation('');
+          }
+        });
+      }
+
       contactForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -437,9 +468,18 @@
         };
 
         if (!templateParams.from_name || !templateParams.reply_to || !templateParams.message) {
+          setEmailValidation('');
           setContactStatus('Please complete name, email, and message.', 'error');
           return;
         }
+
+        if (!isValidEmail(templateParams.reply_to)) {
+          setEmailValidation('Please enter a valid email address.');
+          setContactStatus('Please fix the email field and try again.', 'error');
+          return;
+        }
+
+        setEmailValidation('');
 
         contactSubmit.disabled = true;
         contactSubmit.textContent = 'Sending...';
@@ -449,7 +489,7 @@
           window.emailjs.init({ publicKey: emailJsConfig.publicKey });
           await window.emailjs.send(emailJsConfig.serviceId, emailJsConfig.templateId, templateParams);
           contactForm.reset();
-          setContactStatus('Message sent. We will get back to you soon.', 'success');
+          setContactStatus('Thanks - we will reply within 1 business day.', 'success');
           window.dataLayer = window.dataLayer || [];
           window.dataLayer.push({ event: 'procuro_contact_submit' });
         } catch (error) {

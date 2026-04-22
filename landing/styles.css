@@ -726,12 +726,27 @@ details p {
   border-color: #7dd3fc;
 }
 
+.field input[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
 .contact-form > .field {
   margin-top: 12px;
 }
 
 .contact-grid .field + .field {
   margin-top: 0;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  color: #b91c1c;
+  display: none;
+}
+
+.field-error.visible {
+  display: block;
 }
 
 .contact-actions {
