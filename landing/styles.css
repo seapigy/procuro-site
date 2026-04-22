@@ -313,9 +313,13 @@ h1 {
 .proof-layout {
   margin-top: 28px;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr);
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: center;
+  justify-items: center;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .proof-stats {
@@ -323,6 +327,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
 }
 
 .stat-card {
@@ -355,6 +360,8 @@ h1 {
   border-radius: var(--radius-card);
   padding: 20px;
   box-shadow: var(--shadow-soft);
+  max-width: 720px;
+  text-align: center;
 }
 
 .testimonial-copy {
@@ -375,6 +382,9 @@ h1 {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .trust-pill {
