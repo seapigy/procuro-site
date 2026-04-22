@@ -460,9 +460,12 @@
         }
 
         const formData = new FormData(contactForm);
+        const replyTo = String(formData.get('reply_to') || '').trim();
         const templateParams = {
           from_name: String(formData.get('from_name') || '').trim(),
-          reply_to: String(formData.get('reply_to') || '').trim(),
+          reply_to: replyTo,
+          from_email: replyTo,
+          email: replyTo,
           company_name: String(formData.get('company_name') || '').trim(),
           message: String(formData.get('message') || '').trim(),
         };
@@ -485,6 +488,14 @@
         contactSubmit.textContent = 'Sending...';
         setContactStatus('Sending your message...', '');
 
+        function formatEmailJsFailure(error) {
+          if (!error) return '';
+          if (typeof error.text === 'string' && error.text.trim()) return error.text.trim();
+          if (typeof error.message === 'string' && error.message.trim()) return error.message.trim();
+          if (error.status && typeof error.text === 'string') return `${error.status} ${error.text}`.trim();
+          return '';
+        }
+
         try {
           window.emailjs.init({ publicKey: emailJsConfig.publicKey });
           await window.emailjs.send(emailJsConfig.serviceId, emailJsConfig.templateId, templateParams);
@@ -493,7 +504,16 @@
           window.dataLayer = window.dataLayer || [];
           window.dataLayer.push({ event: 'procuro_contact_submit' });
         } catch (error) {
-          setContactStatus('Could not send your message right now. Please try again or email procuroapp@gmail.com.', 'error');
+          console.error('EmailJS send failed', error);
+          const detail = formatEmailJsFailure(error);
+          if (detail) {
+            setContactStatus(
+              `Could not send: ${detail}. Check EmailJS allowed domains include https://procuroapp.com, or email procuroapp@gmail.com.`,
+              'error',
+            );
+          } else {
+            setContactStatus('Could not send your message right now. Please try again or email procuroapp@gmail.com.', 'error');
+          }
         } finally {
           contactSubmit.disabled = false;
           contactSubmit.textContent = 'Send Message';
