@@ -57,6 +57,7 @@
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
         <a href="/support">Support</a>
       </nav>
     </div>
@@ -278,6 +279,38 @@
       </div>
     </section>
 
+    <section id="contact" class="section contact-section" aria-labelledby="contact-heading">
+      <div class="container">
+        <h2 id="contact-heading" class="section-title">Contact Procuro</h2>
+        <p class="section-subtitle">Send us a quick note and we will follow up by email.</p>
+        <form id="contact-form" class="contact-form" novalidate>
+          <div class="contact-grid">
+            <label class="field">
+              <span>Name</span>
+              <input type="text" name="from_name" autocomplete="name" required />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" name="reply_to" autocomplete="email" required />
+            </label>
+          </div>
+          <label class="field">
+            <span>Company</span>
+            <input type="text" name="company_name" autocomplete="organization" />
+          </label>
+          <label class="field">
+            <span>Message</span>
+            <textarea name="message" rows="5" required></textarea>
+          </label>
+          <div class="contact-actions">
+            <button type="submit" class="btn btn-primary" id="contact-submit">Send Message</button>
+            <p class="contact-note">Powered by EmailJS.</p>
+          </div>
+          <p id="contact-status" class="contact-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
     <section class="section cta-section" aria-labelledby="final-cta-heading">
       <div class="container">
         <h2 id="final-cta-heading" class="section-title">Ready to Start Free and See Real Savings Opportunities?</h2>
@@ -331,6 +364,7 @@
     <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="mobile-sticky" data-cta-name="start-free-trial">Start Free Trial</a>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>
     const menuToggle = document.getElementById('menu-toggle');
     const mainNav = document.getElementById('main-nav');
@@ -360,6 +394,73 @@
         trackCta(button.dataset.ctaLocation || 'unknown', button.dataset.ctaName || 'cta');
       });
     });
+
+    const emailJsConfig = {
+      publicKey: 'L60gzmtKUBh11FmRS',
+      serviceId: 'service_9huban6',
+      templateId: 'template_7ik869w',
+    };
+
+    const contactForm = document.getElementById('contact-form');
+    const contactStatus = document.getElementById('contact-status');
+    const contactSubmit = document.getElementById('contact-submit');
+
+    function setContactStatus(message, type) {
+      if (!contactStatus) return;
+      contactStatus.textContent = message;
+      contactStatus.classList.remove('success', 'error');
+      if (type) {
+        contactStatus.classList.add(type);
+      }
+    }
+
+    if (contactForm && contactStatus && contactSubmit) {
+      contactForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const missingConfig = Object.values(emailJsConfig).some((value) => value.startsWith('YOUR_EMAILJS_'));
+        if (missingConfig) {
+          setContactStatus('EmailJS is not configured yet. Add your public key, service ID, and template ID in landing/index.html.', 'error');
+          return;
+        }
+
+        if (!window.emailjs) {
+          setContactStatus('Email service failed to load. Refresh and try again.', 'error');
+          return;
+        }
+
+        const formData = new FormData(contactForm);
+        const templateParams = {
+          from_name: String(formData.get('from_name') || '').trim(),
+          reply_to: String(formData.get('reply_to') || '').trim(),
+          company_name: String(formData.get('company_name') || '').trim(),
+          message: String(formData.get('message') || '').trim(),
+        };
+
+        if (!templateParams.from_name || !templateParams.reply_to || !templateParams.message) {
+          setContactStatus('Please complete name, email, and message.', 'error');
+          return;
+        }
+
+        contactSubmit.disabled = true;
+        contactSubmit.textContent = 'Sending...';
+        setContactStatus('Sending your message...', '');
+
+        try {
+          window.emailjs.init({ publicKey: emailJsConfig.publicKey });
+          await window.emailjs.send(emailJsConfig.serviceId, emailJsConfig.templateId, templateParams);
+          contactForm.reset();
+          setContactStatus('Message sent. We will get back to you soon.', 'success');
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'procuro_contact_submit' });
+        } catch (error) {
+          setContactStatus('Could not send your message right now. Please try again or email procuroapp@gmail.com.', 'error');
+        } finally {
+          contactSubmit.disabled = false;
+          contactSubmit.textContent = 'Send Message';
+        }
+      });
+    }
   </script>
 </body>
 </html>
