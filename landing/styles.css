@@ -621,6 +621,14 @@ details p {
   text-align: center;
 }
 
+.cta-section .section-title {
+  color: #ffffff;
+}
+
+.cta-section .section-subtitle {
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .cta-section .btn-primary {
   margin-top: 8px;
 }
@@ -628,7 +636,7 @@ details p {
 .cta-security {
   margin-top: 14px;
   font-size: 0.92rem;
-  opacity: 0.96;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 footer {
