@@ -760,13 +760,6 @@ details p {
   cursor: not-allowed;
 }
 
-.contact-note {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #64748b;
-  text-align: center;
-}
-
 .contact-status {
   min-height: 24px;
   margin: 12px 0 0;
