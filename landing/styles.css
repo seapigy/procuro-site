@@ -465,14 +465,16 @@ h1 {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: var(--surface-alt);
+  background: #ffffff;
   border: 1px solid var(--border);
-  color: var(--brand-blue);
+  color: #1e3a8a;
 }
 
 .feature-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .feature-card h3 {
