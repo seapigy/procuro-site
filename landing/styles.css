@@ -303,6 +303,12 @@ h1 {
   font-size: 1.05rem;
 }
 
+.section-intro-center {
+  text-align: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 .social-proof {
   background: var(--surface);
   border-top: 1px solid var(--border);
