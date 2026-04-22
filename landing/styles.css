@@ -322,12 +322,20 @@ h1 {
   margin-right: auto;
 }
 
+.proof-layout > div {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
 .proof-stats {
   margin-top: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(180px, 220px));
   gap: 14px;
-  width: 100%;
+  justify-content: center;
+  width: auto;
+  max-width: 100%;
 }
 
 .stat-card {
