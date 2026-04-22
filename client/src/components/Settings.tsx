@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, X, Download } from 'lucide-react';
+import { Settings as SettingsIcon, X, Download, CreditCard, CheckCircle2, Unplug, AlertCircle, Shield, Info } from 'lucide-react';
+import { Tooltip } from './ui/tooltip';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { apiUrl, apiFetch } from '../utils/api';
+import { useSubscription } from '../context/SubscriptionContext';
 
 interface SettingsConfig {
   notificationFrequency: 'daily' | 'weekly' | 'manual';
@@ -18,9 +21,15 @@ const DEFAULT_SETTINGS: SettingsConfig = {
 };
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { isSubscribed, openPortal, stripeCustomerId } = useSubscription();
   const [settings, setSettings] = useState<SettingsConfig>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [qbStatus, setQbStatus] = useState<'connected' | 'disconnected' | 'unknown'>('unknown');
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [qbStatusLoading, setQbStatusLoading] = useState(true);
+  const [isConnectionBroken, setIsConnectionBroken] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage
@@ -33,6 +42,98 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       }
     }
   }, [isOpen]);
+
+  // Fetch QuickBooks connection status when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchQuickBooksStatus();
+    }
+  }, [isOpen]);
+
+  const fetchQuickBooksStatus = async () => {
+    try {
+      setQbStatusLoading(true);
+      const res = await apiFetch(apiUrl('/api/qb/status'));
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setQbStatus(data.isQuickBooksConnected ? 'connected' : 'disconnected');
+        setIsConnectionBroken(data.isConnectionBroken || false);
+      } else {
+        setQbStatus('disconnected');
+        setIsConnectionBroken(false);
+      }
+    } catch (error) {
+      console.error('Error fetching QuickBooks status:', error);
+      setQbStatus('disconnected');
+      setIsConnectionBroken(false);
+    } finally {
+      setQbStatusLoading(false);
+    }
+  };
+
+  const handleReconnectQuickBooks = async () => {
+    try {
+      setIsReconnecting(true);
+      const res = await apiFetch(apiUrl('/api/qb/reconnect'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        console.error('Failed to get reconnect URL', data);
+        alert(data.message || 'Failed to get reconnect URL.');
+        return;
+      }
+
+      // Redirect to QuickBooks OAuth
+      if (data.connectUrl) {
+        window.location.href = data.connectUrl;
+      }
+    } catch (err) {
+      console.error('Error reconnecting QuickBooks', err);
+      alert('An error occurred while reconnecting QuickBooks.');
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  const handleDisconnectQuickBooks = async () => {
+    if (!window.confirm('Are you sure you want to disconnect QuickBooks? This will stop importing purchases and disable automated price checks for QuickBooks data.')) {
+      return;
+    }
+
+    try {
+      setIsDisconnecting(true);
+      const res = await apiFetch(apiUrl('/api/qb/disconnect'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        console.error('Failed to disconnect QuickBooks', data);
+        alert(data.message || 'Failed to disconnect QuickBooks.');
+        return;
+      }
+
+      // Update UI state
+      setQbStatus('disconnected');
+      alert('QuickBooks has been disconnected successfully.');
+    } catch (err) {
+      console.error('Error disconnecting QuickBooks', err);
+      alert('An error occurred while disconnecting QuickBooks.');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
 
   const handleSave = () => {
     localStorage.setItem('procuro-settings', JSON.stringify(settings));
@@ -48,7 +149,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const handleBackup = async () => {
     setDownloading(true);
     try {
-      const response = await fetch('/api/backup');
+      const response = await apiFetch(apiUrl('/api/backup'));
       
       if (!response.ok) {
         throw new Error('Failed to download backup');
@@ -231,6 +332,155 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </div>
                 </label>
+              </CardContent>
+            </Card>
+
+            {/* Billing & Subscription */}
+            {isSubscribed && stripeCustomerId && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Billing & Subscription</CardTitle>
+                  <CardDescription>Manage your subscription and payment methods</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-green-50 dark:bg-green-900/20">
+                      <div>
+                        <p className="font-medium text-green-900 dark:text-green-100">Active Subscription</p>
+                        <p className="text-sm text-green-700 dark:text-green-300">$19/month - Automated Monitoring</p>
+                      </div>
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    </div>
+                    <Button
+                      onClick={openPortal}
+                      className="w-full bg-primary hover:bg-primary/90"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Manage Billing
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Update payment methods, view invoices, or cancel your subscription
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* QuickBooks Connection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">QuickBooks Connection</CardTitle>
+                <CardDescription>Manage your QuickBooks Online connection</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="font-medium">Status:</p>
+                      <p className="text-sm text-muted-foreground">
+                        {qbStatusLoading ? (
+                          'Loading...'
+                        ) : qbStatus === 'connected' ? (
+                          <span className="text-green-600 dark:text-green-400">Connected</span>
+                        ) : (
+                          <span className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                            Not Connected
+                            {isConnectionBroken && (
+                              <span className="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                                ⚠️ Connection Lost
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    {qbStatus === 'connected' && (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    )}
+                  </div>
+
+                  {/* Connection Broken Warning */}
+                  {isConnectionBroken && qbStatus === 'connected' && (
+                    <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-yellow-900 dark:text-yellow-100">
+                              Connection Lost
+                            </p>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                              QuickBooks access was revoked. Please reconnect to continue monitoring.
+                            </p>
+                            <Button
+                              onClick={handleReconnectQuickBooks}
+                              disabled={isReconnecting}
+                              className="mt-3"
+                              size="sm"
+                            >
+                              {isReconnecting ? 'Connecting...' : 'Reconnect QuickBooks'}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {qbStatus === 'connected' && !isConnectionBroken ? (
+                    <Button
+                      onClick={handleDisconnectQuickBooks}
+                      disabled={isDisconnecting}
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      <Unplug className="h-4 w-4 mr-2" />
+                      {isDisconnecting ? 'Disconnecting...' : 'Disconnect QuickBooks'}
+                    </Button>
+                  ) : qbStatus === 'disconnected' && !isConnectionBroken ? (
+                    <Button
+                      asChild
+                      className="w-full"
+                    >
+                      <a href={apiUrl('/api/qb/connect')}>Connect QuickBooks</a>
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data & Privacy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Data & Privacy
+                </CardTitle>
+                <CardDescription>Information about data we store from QuickBooks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      Data We Store From QuickBooks
+                      <Tooltip content="Required for App Store approval">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Tooltip>
+                    </h4>
+                    <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
+                      <li>Item name</li>
+                      <li>Price paid</li>
+                      <li>Vendor</li>
+                      <li>Purchase date</li>
+                      <li>Quantity</li>
+                      <li>Last purchase date</li>
+                    </ul>
+                  </div>
+                  <div className="pt-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Important:</strong> No account numbers are stored. No payroll or tax data is accessed. Only purchase-related data is processed.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

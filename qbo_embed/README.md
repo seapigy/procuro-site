@@ -11,7 +11,7 @@ QuickBooks App manifest file required for app submission to Intuit Developer Por
 - App Name: Procuro
 - Version: 1.0.0
 - Launch URL: `https://procuroapp.com/qbo_embed/iframe-loader.html`
-- OAuth Redirect: `https://procuroapp.com/oauth/callback`
+- OAuth Redirect: `https://procuroapp.com/api/qb/callback`
 
 **Scopes:**
 - `com.intuit.quickbooks.accounting` - Access to accounting data
@@ -66,7 +66,7 @@ npx serve qbo_embed
 
 2. **Verify URLs:**
    - Launch URL: `https://procuroapp.com/qbo_embed/iframe-loader.html`
-   - OAuth Callback: `https://procuroapp.com/oauth/callback`
+   - OAuth Callback: `https://procuroapp.com/api/qb/callback`
 
 3. **Test iframe loading:**
    ```
@@ -82,7 +82,7 @@ npx serve qbo_embed
 3. Go to **Keys & OAuth**
 
 **Verify Settings:**
-- ✅ Redirect URI: `https://procuroapp.com/oauth/callback`
+- ✅ Redirect URI: `https://procuroapp.com/api/qb/callback`
 - ✅ Scopes enabled:
   - Accounting
   - OpenID

@@ -53,7 +53,7 @@
   "description": "Procuro helps businesses...", ✅
   "auth": {
     "type": "OAuth2", ✅
-    "redirect_uris": ["https://procuroapp.com/oauth/callback", "http://localhost:5000/api/qb/callback"], ✅
+    "redirect_uris": ["https://procuroapp.com/api/qb/callback", "http://localhost:5000/api/qb/callback"], ✅
     "scopes": ["com.intuit.quickbooks.accounting", "openid", "profile", "email"] ✅
   },
   "launch_url": "https://procuroapp.com/qbo_embed/iframe-loader.html", ✅
@@ -86,7 +86,7 @@
 | https://procuroapp.com/terms | Terms of service displays | 🔄 Pending deployment |
 | https://procuroapp.com/support | Support page displays | 🔄 Pending deployment |
 | https://procuroapp.com/qbo_embed/iframe-loader.html | Iframe loader | 🔄 Pending deployment |
-| https://procuroapp.com/oauth/callback | OAuth handler | 🔄 Pending deployment |
+| https://procuroapp.com/api/qb/callback | OAuth handler | 🔄 Pending deployment |
 
 **Note:** All files are ready for deployment. URLs will be live after deploying to procuroapp.com.
 
@@ -199,7 +199,7 @@
 
 ### Optional Add-Ons Tests
 
-✅ **Test Results:** `OPTIONAL-ADDONS-TESTING.md`
+✅ **Test results** (historical log; see git history if needed):
 - ✅ Inline editing: 5/5 tests passed
 - ✅ Quick search: 6/6 tests passed
 - ✅ Top Vendors chart: 5/5 tests passed
@@ -209,7 +209,7 @@
 
 ### System Verification
 
-✅ **Comprehensive Report:** `docs/SYSTEM-VERIFICATION-REPORT.md`
+✅ **System verification** (historical report in git history; for current checks run server/client tests per [docs/DEVELOPMENT.md](../DEVELOPMENT.md)):
 - ✅ All backend endpoints verified
 - ✅ Cron workers validated
 - ✅ UI components tested

@@ -469,6 +469,12 @@ We've pre-loaded the sandbox environment with:
    - Production will use PostgreSQL (Neon.tech)
    - Seamless migration planned
 
+5. **QuickBooks data scope (current release):**
+   - Imports are purchase-derived from QuickBooks `Purchase` transactions
+   - Vendor names are captured from `Purchase.VendorRef` when available
+   - No separate direct QuickBooks `Item` catalog sync endpoint yet
+   - No separate direct QuickBooks `Vendor` list sync endpoint yet
+
 ### Not Bugs (By Design)
 
 - **14-day free trial:** No credit card required

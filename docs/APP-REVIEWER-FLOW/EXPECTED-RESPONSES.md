@@ -563,7 +563,7 @@ Host: localhost:5000
 #### Expected Response
 
 **Status:** `302 Found`  
-**Location:** `/dashboard` or `/qbo_embed/iframe-loader.html`
+**Location:** `http://localhost:5173/qb-success?...` (or your configured `FRONTEND_URL`)
 
 Redirects to dashboard after:
 1. Exchanging code for tokens
@@ -614,7 +614,7 @@ procuro-savings-report-2025-11-13.csv
   "auth": {
     "type": "OAuth2",
     "redirect_uris": [
-      "https://procuroapp.com/oauth/callback",
+      "https://procuroapp.com/api/qb/callback",
       "http://localhost:5000/api/qb/callback"
     ],
     "scopes": [

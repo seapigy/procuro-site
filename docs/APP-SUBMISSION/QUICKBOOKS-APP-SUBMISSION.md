@@ -65,7 +65,7 @@ Add these redirect URIs in the OAuth settings:
 
 **Production:**
 ```
-https://procuroapp.com/oauth/callback
+https://procuroapp.com/api/qb/callback
 ```
 
 **Development (optional):**
@@ -83,7 +83,7 @@ Select the following scopes:
 - [x] `email` - User email address
 
 **Justification:**
-- **Accounting:** Required to read Purchase transactions and vendor data
+- **Accounting:** Required to read Purchase transactions (line-item imports and vendor references from purchases)
 - **OpenID/Profile/Email:** Required for user authentication and support
 
 ---
@@ -132,7 +132,7 @@ Ensure these URLs are live and accessible:
 | Privacy Policy | https://procuroapp.com/privacy | ✅ Live |
 | Terms of Service | https://procuroapp.com/terms | ✅ Live |
 | Support | https://procuroapp.com/support | ✅ Live |
-| OAuth Callback | https://procuroapp.com/oauth/callback | ✅ Configured |
+| OAuth Callback | https://procuroapp.com/api/qb/callback | ✅ Configured |
 | Launch URL | https://procuroapp.com/qbo_embed/iframe-loader.html | ✅ Live |
 
 ---

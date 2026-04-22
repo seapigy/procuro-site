@@ -1,25 +1,39 @@
+import './loadEnv';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import apiRoutes from './routes';
 import quickbooksRoutes from './routes/quickbooks';
+import simulateRoutes from './routes/simulate';
 import itemsRoutes from './routes/items';
 import alertsRoutes from './routes/alerts';
 import savingsRoutes from './routes/savings';
 import invitesRoutes from './routes/invites';
 import backupRoutes from './routes/backup';
 import storePriceRoutes from './routes/store-price';
+import pricesRoutes from './routes/prices';
 import providersRoutes from './routes/providers';
+import billingRoutes from './routes/billing';
+import companyRoutes from './routes/company';
+import monitoringRoutes from './routes/monitoring';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { securityHeaders } from './middleware/securityHeaders';
+import { companyContext } from './middleware/companyContext';
+import { allowTestAndDebugRoutes } from './middleware/allowTestRoutes';
+import testRoutes from './routes/test';
+import debugRoutes from './routes/debug';
+import { assertBrightDataConfigWhenEnabled } from './config/brightData';
 import prisma from './lib/prisma';
 import appConfig from '../../config/app.json';
 import { startDailyPriceCheckCron } from './workers/dailyPriceCheck';
 import { startTokenRefreshCron } from './workers/tokenRefresh';
+import { getSchedulerRole, shouldStartCronSchedulers, validateRequiredEnvForRuntime } from './config/runtime';
 
-// Load environment variables
-dotenv.config();
+// Fail startup if Bright Data is enabled but required env vars are missing
+assertBrightDataConfigWhenEnabled();
+validateRequiredEnvForRuntime();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,8 +62,13 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
+// Security headers middleware (applied to all routes)
+app.use(securityHeaders);
+
 // Middleware
 app.use(cors(corsOptions));
+// Stripe webhook needs raw body for signature verification
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -94,7 +113,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint (public)
+// API rate limiting (applied to /api routes only)
+// More lenient in development mode
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // 1000 requests in dev, 100 in production
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  message: 'Too many requests from this IP, please try again later.',
+  // Skip rate limiting for localhost in development
+  skip: (req) => {
+    if (process.env.NODE_ENV === 'development') {
+      const ip = req.ip || req.socket.remoteAddress || '';
+      return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.startsWith('127.0.0.1') || ip.startsWith('::1');
+    }
+    return false;
+  },
+});
+
+// Apply rate limiting to API routes only
+app.use('/api', apiLimiter);
+
+// Simulate QuickBooks connected: serve real DB data for test user without companyContext (for testing UI)
+app.use('/api/simulate', simulateRoutes);
+
+// Resolve company context for tenant isolation (sets req.companyId)
+app.use('/api', companyContext);
+
+// Health check endpoint (public, not rate limited)
 app.get('/health', async (req, res) => {
   try {
     // Test database connection
@@ -134,7 +180,10 @@ app.get('/terms', (req, res) => {
 
 // Serve landing page at root
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../landing/index.html'));
+  const landingPath = path.join(__dirname, '../../landing/index.html');
+  res.sendFile(landingPath, (err) => {
+    if (err) console.error('Landing sendFile error:', err);
+  });
 });
 
 // Serve invite page
@@ -149,6 +198,35 @@ app.get('/dashboard/company/invite', (req, res) => {
 
 // API routes (public, but authenticated)
 app.use('/api', apiRoutes);
+
+// Backward-compatibility alias for legacy production OAuth callback URL.
+app.get('/oauth/callback', (req, res) => {
+  const queryStart = req.originalUrl.indexOf('?');
+  const query = queryStart >= 0 ? req.originalUrl.slice(queryStart) : '';
+  res.redirect(`/api/qb/callback${query}`);
+});
+
+// Debug: verify backend sees test user and items (helps when data is in Supabase but not in app)
+app.get('/api/debug/context', allowTestAndDebugRoutes, async (req, res) => {
+  try {
+    const companyId = req.companyId;
+    const user = req.companyContextUser;
+    let itemCount = 0;
+    if (companyId != null && user) {
+      itemCount = await prisma.item.count({ where: { companyId, userId: user.id } });
+    }
+    res.json({
+      userFound: !!user,
+      companyId: companyId ?? null,
+      userEmail: user?.email ?? null,
+      itemCount,
+      hint: !user ? 'Backend cannot find test user. If using Supabase pooler, run server/sql/rls_disable_for_pooler.sql in Supabase SQL Editor.' : (itemCount === 0 ? 'User found but no items. Run: npm run seed (from server folder).' : 'OK – app should show data.'),
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
 app.use('/api/qb', quickbooksRoutes);
 app.use('/api/items', itemsRoutes);
 app.use('/api/alerts', alertsRoutes);
@@ -156,7 +234,13 @@ app.use('/api', savingsRoutes);
 app.use('/api', invitesRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/store-price', storePriceRoutes);
+app.use('/api/prices', pricesRoutes);
 app.use('/api/provider', providersRoutes); // Backend provider proxies
+app.use('/api/billing', billingRoutes); // Stripe billing routes
+app.use('/api/company', companyRoutes);
+app.use('/api/monitoring', monitoringRoutes); // Company activation
+app.use('/api/test', allowTestAndDebugRoutes, testRoutes);
+app.use('/api/debug', allowTestAndDebugRoutes, debugRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
@@ -171,12 +255,20 @@ app.listen(PORT, () => {
   console.log(`╚═══════════════════════════════════════════╝`);
   console.log(`\n📍 Server: http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💾 Database: SQLite (local)`);
+  const dbUrl = process.env.DATABASE_URL || '';
+  const dbLabel = dbUrl.includes('postgresql') || dbUrl.includes('supabase') || dbUrl.includes('pooler') ? 'PostgreSQL (Supabase)' : 'SQLite (local)';
+  console.log(`💾 Database: ${dbLabel}`);
   console.log(`\n⏰ Scheduled Tasks:`);
-  
-  // Start cron jobs
-  startDailyPriceCheckCron();
-  startTokenRefreshCron();
+  const schedulerRole = getSchedulerRole();
+  console.log(`🧭 Scheduler role: ${schedulerRole}`);
+
+  if (shouldStartCronSchedulers(schedulerRole)) {
+    // Start cron jobs only on scheduler-authoritative processes.
+    startDailyPriceCheckCron();
+    startTokenRefreshCron();
+  } else {
+    console.log('⏸️  Cron schedulers disabled on this process (api-only role)');
+  }
   
   console.log(`\n✅ Server ready and listening for requests\n`);
 });

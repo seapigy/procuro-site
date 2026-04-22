@@ -4,7 +4,7 @@
   "auth": {
     "type": "OAuth2",
     "redirect_uris": [
-      "https://procuroapp.com/oauth/callback",
+      "https://procuroapp.com/api/qb/callback",
       "http://localhost:5000/api/qb/callback"
     ],
     "scopes": [

@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import axios from 'axios';
 import prisma from '../lib/prisma';
 import appConfig from '../../../config/app.json';
-import { encryptTokens } from '../utils/crypto';
+import { encryptTokens, getDecryptedQBTokens } from '../utils/crypto';
 
 /**
  * Token refresh worker
@@ -44,9 +44,15 @@ export async function runTokenRefresh() {
           continue;
         }
 
+        const { refreshToken: plainRefreshToken } = getDecryptedQBTokens(user);
+        if (!plainRefreshToken) {
+          console.log(`⚠️  User ${user.email} could not decrypt refresh token`);
+          continue;
+        }
+
         // Refresh the token
         const newTokens = await refreshQuickBooksToken(
-          user.quickbooksRefreshToken,
+          plainRefreshToken,
           user.quickbooksRealmId
         );
 
@@ -89,7 +95,7 @@ export async function runTokenRefresh() {
 /**
  * Refresh QuickBooks OAuth token
  */
-async function refreshQuickBooksToken(
+export async function refreshQuickBooksToken(
   refreshToken: string,
   realmId: string
 ): Promise<{ accessToken: string; refreshToken: string } | null> {
@@ -125,7 +131,8 @@ async function refreshQuickBooksToken(
       refreshToken: response.data.refresh_token
     };
   } catch (error: any) {
-    console.error('Token refresh error:', error.response?.data || error.message);
+    const reason = error.response?.data || error.message;
+    console.error(`Token refresh error for realm ${realmId}:`, reason);
     return null;
   }
 }

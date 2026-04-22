@@ -15,8 +15,14 @@ function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY;
   
   if (!key) {
-    console.warn('⚠️  ENCRYPTION_KEY not set in .env - using default key (NOT secure for production)');
-    return 'default-encryption-key-please-change-in-production-env';
+    const isDevLike =
+      (process.env.NODE_ENV || 'development') !== 'production' ||
+      String(process.env.TEST_MODE || '').trim().toLowerCase() === 'true';
+    if (!isDevLike) {
+      throw new Error('ENCRYPTION_KEY must be set for non-development runtime');
+    }
+    console.warn('⚠️  ENCRYPTION_KEY not set in .env - using development fallback key');
+    return 'dev-only-encryption-key-change-before-production';
   }
   
   return key;
@@ -126,5 +132,30 @@ export function decryptTokens(accessToken: string | null, refreshToken: string |
     accessToken: accessToken ? decrypt(accessToken) : null,
     refreshToken: refreshToken ? decrypt(refreshToken) : null
   };
+}
+
+/**
+ * Get plaintext QuickBooks tokens from a user record.
+ * Handles both encrypted (post-refresh) and plaintext (legacy/initial) stored values.
+ * Use this before any Intuit API call that needs tokens from the database.
+ */
+export function getDecryptedQBTokens(user: {
+  quickbooksAccessToken: string | null;
+  quickbooksRefreshToken: string | null;
+}): { accessToken: string | null; refreshToken: string | null } {
+  return {
+    accessToken: decodeTokenIfNeeded(user.quickbooksAccessToken),
+    refreshToken: decodeTokenIfNeeded(user.quickbooksRefreshToken),
+  };
+}
+
+function decodeTokenIfNeeded(stored: string | null): string | null {
+  if (!stored) return null;
+  if (!isEncrypted(stored)) return stored;
+  try {
+    return decrypt(stored);
+  } catch {
+    return stored; // fallback if decrypt fails (e.g. corrupted)
+  }
 }
 

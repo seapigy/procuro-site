@@ -140,7 +140,7 @@ Procuro would like to:
 
 **Expected Behavior:**
 - QuickBooks processes authorization
-- Redirects to: `https://procuroapp.com/oauth/callback?code=XXX&realmId=XXX&state=XXX`
+- Redirects to: `https://procuroapp.com/api/qb/callback?code=XXX&realmId=XXX&state=XXX`
 - Procuro iframe loads inside QuickBooks
 
 **Behind the Scenes (For Your Understanding):**
