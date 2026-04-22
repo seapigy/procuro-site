@@ -3,691 +3,347 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Procuro - Save Money on What You Already Buy</title>
-  <meta name="description" content="Procuro helps businesses save money by automatically monitoring recurring purchases and comparing prices across major retailers. Integrated directly with QuickBooks Online." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.6;
-      color: #1a1a1a;
-      background: #f8f9fa;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-    
-    /* Header */
-    header {
-      background: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 20px 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 28px;
-      font-weight: 700;
-      color: #0077C5;
-      text-decoration: none;
-    }
-    
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #0077C5 0%, #00A699 100%);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-    }
-    
-    nav a {
-      color: #4a5568;
-      text-decoration: none;
-      margin-left: 30px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    
-    nav a:hover {
-      color: #0077C5;
-    }
-    
-    /* Hero Section */
-    .hero {
-      background: linear-gradient(135deg, #0077C5 0%, #00A699 100%);
-      color: white;
-      padding: 100px 0 120px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -10%;
-      width: 500px;
-      height: 500px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 50%;
-    }
-    
-    .hero::after {
-      content: '';
-      position: absolute;
-      bottom: -30%;
-      left: -5%;
-      width: 400px;
-      height: 400px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 50%;
-    }
-    
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-    
-    .hero h1 {
-      font-size: 56px;
-      font-weight: 700;
-      margin-bottom: 24px;
-      line-height: 1.2;
-    }
-    
-    .hero p {
-      font-size: 24px;
-      margin-bottom: 40px;
-      opacity: 0.95;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    
-    .cta-buttons {
-      display: flex;
-      gap: 20px;
-      justify-content: center;
-      margin-top: 40px;
-    }
-    
-    .btn {
-      display: inline-block;
-      padding: 16px 36px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 18px;
-      text-decoration: none;
-      transition: all 0.3s;
-      cursor: pointer;
-      border: 2px solid transparent;
-    }
-    
-    .btn-primary {
-      background: white;
-      color: #0077C5;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-    }
-    
-    .btn-secondary {
-      background: transparent;
-      color: white;
-      border-color: white;
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255,255,255,0.1);
-    }
-    
-    /* Features Section */
-    .features {
-      padding: 80px 0;
-      background: white;
-    }
-    
-    .section-header {
-      text-align: center;
-      margin-bottom: 60px;
-    }
-    
-    .section-header h2 {
-      font-size: 42px;
-      color: #1a1a1a;
-      margin-bottom: 16px;
-    }
-    
-    .section-header p {
-      font-size: 20px;
-      color: #6b7280;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 40px;
-      margin-top: 60px;
-    }
-    
-    .feature-card {
-      text-align: center;
-      padding: 40px 30px;
-      border-radius: 12px;
-      background: #f8f9fa;
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-    
-    .feature-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-    }
-    
-    .feature-icon {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #0077C5 0%, #00A699 100%);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
-      font-size: 36px;
-    }
-    
-    .feature-card h3 {
-      font-size: 22px;
-      color: #1a1a1a;
-      margin-bottom: 12px;
-    }
-    
-    .feature-card p {
-      font-size: 16px;
-      color: #6b7280;
-      line-height: 1.6;
-    }
-    
-    /* How It Works */
-    .how-it-works {
-      padding: 80px 0;
-      background: #f8f9fa;
-    }
-    
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 40px;
-      margin-top: 60px;
-    }
-    
-    .step {
-      text-align: center;
-      position: relative;
-    }
-    
-    .step-number {
-      width: 60px;
-      height: 60px;
-      background: #0077C5;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 700;
-      margin: 0 auto 20px;
-    }
-    
-    .step h3 {
-      font-size: 20px;
-      color: #1a1a1a;
-      margin-bottom: 12px;
-    }
-    
-    .step p {
-      color: #6b7280;
-      font-size: 16px;
-    }
-    
-    /* Pricing */
-    .pricing {
-      padding: 80px 0;
-      background: white;
-    }
-    
-    .pricing-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-      max-width: 900px;
-      margin: 60px auto 0;
-    }
-    
-    .pricing-card {
-      border: 2px solid #e0e0e0;
-      border-radius: 12px;
-      padding: 40px;
-      text-align: center;
-      transition: all 0.3s;
-    }
-    
-    .pricing-card:hover {
-      border-color: #0077C5;
-      box-shadow: 0 8px 24px rgba(0,119,197,0.15);
-    }
-    
-    .pricing-card.featured {
-      border-color: #0077C5;
-      position: relative;
-      transform: scale(1.05);
-    }
-    
-    .pricing-badge {
-      position: absolute;
-      top: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #00A699;
-      color: white;
-      padding: 6px 20px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    
-    .pricing-card h3 {
-      font-size: 24px;
-      color: #1a1a1a;
-      margin-bottom: 16px;
-    }
-    
-    .price {
-      font-size: 48px;
-      font-weight: 700;
-      color: #0077C5;
-      margin: 20px 0;
-    }
-    
-    .price span {
-      font-size: 20px;
-      color: #6b7280;
-      font-weight: 400;
-    }
-    
-    .pricing-features {
-      list-style: none;
-      margin: 30px 0;
-      text-align: left;
-    }
-    
-    .pricing-features li {
-      padding: 10px 0;
-      color: #4a5568;
-      position: relative;
-      padding-left: 30px;
-    }
-    
-    .pricing-features li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: #00A699;
-      font-weight: 700;
-      font-size: 18px;
-    }
-    
-    /* CTA Section */
-    .cta-section {
-      background: linear-gradient(135deg, #0077C5 0%, #00A699 100%);
-      color: white;
-      padding: 80px 0;
-      text-align: center;
-    }
-    
-    .cta-section h2 {
-      font-size: 42px;
-      margin-bottom: 20px;
-    }
-    
-    .cta-section p {
-      font-size: 20px;
-      margin-bottom: 40px;
-      opacity: 0.95;
-    }
-    
-    /* Footer */
-    footer {
-      background: #1a1a1a;
-      color: #9ca3af;
-      padding: 60px 0 30px;
-    }
-    
-    .footer-content {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 40px;
-      margin-bottom: 40px;
-    }
-    
-    .footer-section h4 {
-      color: white;
-      font-size: 18px;
-      margin-bottom: 20px;
-    }
-    
-    .footer-section ul {
-      list-style: none;
-    }
-    
-    .footer-section li {
-      margin: 10px 0;
-    }
-    
-    .footer-section a {
-      color: #9ca3af;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    
-    .footer-section a:hover {
-      color: #0077C5;
-    }
-    
-    .footer-bottom {
-      border-top: 1px solid #374151;
-      padding-top: 30px;
-      text-align: center;
-      color: #6b7280;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 36px;
-      }
-      
-      .hero p {
-        font-size: 18px;
-      }
-      
-      .cta-buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      .btn {
-        width: 100%;
-        max-width: 300px;
-      }
-      
-      .section-header h2 {
-        font-size: 32px;
-      }
-      
-      .pricing-card.featured {
-        transform: scale(1);
-      }
-      
-      nav a {
-        margin-left: 15px;
-        font-size: 14px;
-      }
-    }
-  </style>
+  <title>Procuro | Save Money on Recurring Business Purchases</title>
+  <meta name="description" content="Procuro helps businesses reduce spend by monitoring recurring QuickBooks purchases and surfacing better prices from trusted retailers." />
+  <meta name="keywords" content="QuickBooks savings app, purchase monitoring, business procurement, recurring spend optimization" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://procuroapp.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Procuro | Save Money on Recurring Business Purchases" />
+  <meta property="og:description" content="Connect QuickBooks, monitor recurring purchases, and find lower prices automatically." />
+  <meta property="og:url" content="https://procuroapp.com/" />
+  <meta property="og:image" content="https://procuroapp.com/assets/appstore/banner-1280x640.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Procuro | Save Money on Recurring Business Purchases" />
+  <meta name="twitter:description" content="Automatic purchase monitoring and savings alerts for QuickBooks users." />
+  <meta name="twitter:image" content="https://procuroapp.com/assets/appstore/banner-1280x640.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+  <link rel="stylesheet" href="/landing/styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Procuro",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "QuickBooks-connected purchase monitoring and savings alerts for recurring business spend.",
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "USD",
+      "price": "9.99"
+    },
+    "url": "https://procuroapp.com/"
+  }
+  </script>
 </head>
 <body>
-  <!-- Impact Site Verification -->
-  <div style="display: none;">Impact-Site-Verification: b96a0d15-841a-4dfd-beb6-9d1bbe9ef397</div>
-  
-  <!-- Header -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div class="sr-only">Impact-Site-Verification: b96a0d15-841a-4dfd-beb6-9d1bbe9ef397</div>
+
   <header>
-    <div class="container">
-      <div class="header-content">
-        <a href="/" class="logo">
-          <div class="logo-icon">$</div>
-          <span>Procuro</span>
-        </a>
-        <nav>
-          <a href="#features">Features</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#pricing">Pricing</a>
-          <a href="/support">Support</a>
-        </nav>
-      </div>
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="Procuro homepage">
+        <span class="logo-mark">$</span>
+        <span>Procuro</span>
+      </a>
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">
+        Menu
+      </button>
+      <nav id="main-nav" class="nav-links" aria-label="Main navigation">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="/support">Support</a>
+      </nav>
     </div>
   </header>
-  
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-content">
-        <h1>Save Money on What You Already Buy</h1>
-        <p>Automatically monitor your business purchases and get instant alerts when better prices are available from trusted retailers.</p>
-        <div class="cta-buttons">
-          <a href="/activate" class="btn btn-primary">Connect with QuickBooks</a>
-          <a href="#how-it-works" class="btn btn-secondary">Learn More</a>
+
+  <main id="main-content">
+    <section class="hero section">
+      <div class="container hero-inner">
+        <p class="eyebrow">QuickBooks-connected savings automation</p>
+        <h1>Save Money on What Your Business Already Buys</h1>
+        <p class="hero-subhead">Automatically monitor recurring purchases and get alerted when better prices appear from trusted retailers.</p>
+        <p class="hero-proof">Teams using Procuro can start reviewing savings opportunities in the first day after connecting.</p>
+        <p class="hero-next-step">After you click Start Free Trial, you will securely connect QuickBooks and land in guided setup.</p>
+        <div class="cta-group">
+          <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="hero" data-cta-name="start-free-trial">Start Free Trial</a>
+          <a href="#how-it-works" class="btn btn-secondary">See 2-minute overview</a>
         </div>
-        <p style="margin-top: 30px; font-size: 18px; opacity: 0.9;">✓ 14-Day Free Trial  •  ✓ No Credit Card Required  •  ✓ Cancel Anytime</p>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Features Section -->
-  <section id="features" class="features">
-    <div class="container">
-      <div class="section-header">
-        <h2>Why Businesses Love Procuro</h2>
-        <p>Seamlessly integrated with QuickBooks Online to help you save time and money on every purchase.</p>
-      </div>
-      
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🔗</div>
-          <h3>Embedded in QuickBooks</h3>
-          <p>No context switching. Procuro works directly inside your QuickBooks Online dashboard.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <h3>Instant Savings Alerts</h3>
-          <p>Get notified the moment we find better prices on the items you purchase regularly.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">🛒</div>
-          <h3>Multi-Retailer Comparison</h3>
-          <p>We compare prices across Amazon, Walmart, Staples, and more to find you the best deals.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">🔐</div>
-          <h3>Bank-Level Security</h3>
-          <p>Your data is encrypted with AES-256 security. We never sell or share your information.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Savings Analytics</h3>
-          <p>Track your monthly and annual savings with detailed reports and visual dashboards.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">⏱️</div>
-          <h3>Zero Setup Time</h3>
-          <p>Connect your QuickBooks account and start saving immediately. No manual data entry required.</p>
+        <div class="hero-support" aria-label="trial reassurance">
+          <span>14-day free trial</span>
+          <span>No credit card to start</span>
+          <span>Cancel anytime</span>
         </div>
       </div>
-    </div>
-  </section>
-  
-  <!-- How It Works Section -->
-  <section id="how-it-works" class="how-it-works">
-    <div class="container">
-      <div class="section-header">
-        <h2>How Procuro Works</h2>
-        <p>Start saving money in just 4 simple steps</p>
-      </div>
-      
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h3>Connect QuickBooks</h3>
-          <p>Securely authorize Procuro to read your purchase transactions. Takes 30 seconds.</p>
+    </section>
+
+    <section class="section social-proof" aria-labelledby="proof-heading">
+      <div class="container">
+        <h2 id="proof-heading" class="section-title">Built for Practical Savings, Not Extra Work</h2>
+        <p class="section-subtitle">Connect once, review savings opportunities, and keep your team focused on purchasing decisions.</p>
+        <div class="proof-stats" role="list" aria-label="Procuro proof points">
+          <div class="stat-card" role="listitem">
+            <span class="stat-value">30 sec</span>
+            <span class="stat-label">Typical QuickBooks connect time</span>
+          </div>
+          <div class="stat-card" role="listitem">
+            <span class="stat-value">Daily</span>
+            <span class="stat-label">Automated monitoring cadence</span>
+          </div>
+          <div class="stat-card" role="listitem">
+            <span class="stat-value">Top items</span>
+            <span class="stat-label">Prioritized to maximize value first</span>
+          </div>
         </div>
-        
-        <div class="step">
-          <div class="step-number">2</div>
-          <h3>Automatic Sync</h3>
-          <p>We automatically identify your recurring office and operational supply items.</p>
-        </div>
-        
-        <div class="step">
-          <div class="step-number">3</div>
-          <h3>Daily Price Monitoring</h3>
-          <p>Our system checks prices daily across major retailers using verified APIs.</p>
-        </div>
-        
-        <div class="step">
-          <div class="step-number">4</div>
-          <h3>Get Instant Alerts</h3>
-          <p>Receive notifications when prices drop below what you last paid. Start saving!</p>
+        <article class="testimonial-card" aria-label="Customer result highlight">
+          <p class="testimonial-copy">"We connected QuickBooks in minutes and quickly spotted lower prices on recurring supply orders. Procuro made it obvious where to act first."</p>
+          <p class="testimonial-meta">Operations lead, multi-location small business (pilot feedback)</p>
+        </article>
+        <div class="trust-strip" aria-label="Trust and assurance details">
+          <span class="trust-pill">AES-256 token encryption</span>
+          <span class="trust-pill">Purchase-derived imports only</span>
+          <span class="trust-pill">No selling of customer data</span>
+          <span class="trust-pill">Support response target: 1 business day</span>
         </div>
       </div>
-    </div>
-  </section>
-  
-  <!-- Pricing Section -->
-  <section id="pricing" class="pricing">
-    <div class="container">
-      <div class="section-header">
-        <h2>Simple, Transparent Pricing</h2>
-        <p>Choose the plan that works best for your business</p>
-      </div>
-      
-      <div class="pricing-cards">
-        <div class="pricing-card">
-          <h3>Monthly</h3>
-          <div class="price">$9.99<span>/month</span></div>
-          <ul class="pricing-features">
-            <li>14-day free trial</li>
-            <li>Unlimited items</li>
-            <li>Daily price monitoring</li>
-            <li>Instant savings alerts</li>
-            <li>Analytics dashboard</li>
-            <li>Email support</li>
-            <li>Cancel anytime</li>
-          </ul>
-          <a href="/activate" class="btn btn-primary" style="width: 100%;">Start Free Trial</a>
-        </div>
-        
-        <div class="pricing-card featured">
-          <div class="pricing-badge">BEST VALUE</div>
-          <h3>Annual</h3>
-          <div class="price">$99<span>/year</span></div>
-          <p style="color: #00A699; font-weight: 600; margin-bottom: 20px;">Save $20/year</p>
-          <ul class="pricing-features">
-            <li>14-day free trial</li>
-            <li>Unlimited items</li>
-            <li>Daily price monitoring</li>
-            <li>Instant savings alerts</li>
-            <li>Analytics dashboard</li>
-            <li>Priority email support</li>
-            <li>Annual savings report</li>
-          </ul>
-          <a href="/activate" class="btn btn-primary" style="width: 100%;">Start Free Trial</a>
+    </section>
+
+    <section id="how-it-works" class="section how-section" aria-labelledby="how-heading">
+      <div class="container">
+        <h2 id="how-heading" class="section-title">How Procuro Works</h2>
+        <p class="section-subtitle">A clear onboarding flow from connect to first savings review.</p>
+        <div class="steps-grid">
+          <article class="step-card">
+            <div class="step-number">1</div>
+            <h3>Start free trial and connect QuickBooks</h3>
+            <p>Secure OAuth authorization takes about 30 seconds.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-number">2</div>
+            <h3>Import purchase history context</h3>
+            <p>Procuro builds item and vendor hints from purchase transactions.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-number">3</div>
+            <h3>Monitor retailer prices daily</h3>
+            <p>Tracked items are checked on a recurring schedule.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-number">4</div>
+            <h3>Review and act on savings alerts</h3>
+            <p>See where current prices are lower than what you recently paid.</p>
+          </article>
         </div>
       </div>
-      
-      <p style="text-align: center; color: #6b7280; margin-top: 40px; font-size: 16px;">
-        💳 No credit card required for free trial  •  🔒 Cancel anytime, no questions asked
-      </p>
-    </div>
-  </section>
-  
-  <!-- CTA Section -->
-  <section class="cta-section">
-    <div class="container">
-      <h2>Ready to Start Saving?</h2>
-      <p>Join hundreds of businesses already saving money with Procuro.</p>
-      <a href="/activate" class="btn btn-primary" style="font-size: 20px; padding: 18px 48px;">Get Started Free</a>
-    </div>
-  </section>
-  
-  <!-- Footer -->
+    </section>
+
+    <section id="features" class="section feature-section" aria-labelledby="features-heading">
+      <div class="container">
+        <h2 id="features-heading" class="section-title">Why Teams Choose Procuro</h2>
+        <p class="section-subtitle">Designed to keep implementation low-friction while making savings opportunities clear.</p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+            </div>
+            <h3>QuickBooks-native onboarding</h3>
+            <p>Your team starts from a familiar workflow with guided activation.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+            </div>
+            <h3>Savings alerts with context</h3>
+            <p>Highlights where prices moved and where to review first.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="M10.5 10.5l3 3"/></svg>
+            </div>
+            <h3>Multi-retailer comparison</h3>
+            <p>Procuro compares listings across supported suppliers so buyers can choose better options.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            </div>
+            <h3>Security-first architecture</h3>
+            <p>Encrypted token handling and least-data messaging built into the product and docs.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 2 4-5"/></svg>
+            </div>
+            <h3>Savings analytics</h3>
+            <p>Track activity and outcomes over time from a centralized dashboard.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <h3>Fast time-to-value</h3>
+            <p>No manual spreadsheets or long implementation project required.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="section pricing-section" aria-labelledby="pricing-heading">
+      <div class="container">
+        <h2 id="pricing-heading" class="section-title">Simple Pricing for Ongoing Savings</h2>
+        <p class="section-subtitle">Choose monthly flexibility or annual savings. Both include full functionality.</p>
+        <div class="pricing-cards">
+          <article class="pricing-card">
+            <h3>Monthly</h3>
+            <p class="price">$9.99 <span>/month</span></p>
+            <ul class="feature-list">
+              <li>14-day free trial</li>
+              <li>Daily item monitoring</li>
+              <li>Savings alerts and dashboard reporting</li>
+              <li>Email support</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="pricing-monthly" data-cta-name="start-free-trial">Start Free Trial</a>
+          </article>
+          <article class="pricing-card featured">
+            <span class="pricing-badge">Most selected</span>
+            <h3>Annual</h3>
+            <p class="price">$99 <span>/year</span></p>
+            <p class="price-note">Effective $8.25/month, save $20 per year</p>
+            <ul class="feature-list">
+              <li>Everything in Monthly</li>
+              <li>Priority email support</li>
+              <li>Annual savings summary</li>
+              <li>Lower effective monthly cost</li>
+            </ul>
+            <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="pricing-annual" data-cta-name="start-free-trial">Start Free Trial</a>
+          </article>
+        </div>
+        <p class="pricing-helper">No credit card required to begin trial. Billing starts only after trial if you continue.</p>
+        <p class="faq-teaser">Questions on setup, permissions, or cancellation? See the FAQ below.</p>
+      </div>
+    </section>
+
+    <section id="faq" class="section faq-section" aria-labelledby="faq-heading">
+      <div class="container">
+        <h2 id="faq-heading" class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Short answers to the most common activation and trust questions.</p>
+        <div class="faq-grid">
+          <details>
+            <summary>How long does setup take?</summary>
+            <p>Most teams finish QuickBooks connection in under a minute and can review initial data shortly after activation.</p>
+          </details>
+          <details>
+            <summary>Do I need a credit card to start?</summary>
+            <p>No. Your 14-day trial starts without a card, so your team can validate value before committing.</p>
+          </details>
+          <details>
+            <summary>What QuickBooks data does Procuro use today?</summary>
+            <p>Current functionality is purchase-derived: Procuro reads purchase transactions to infer item and vendor hints. It does not run a separate direct Item or Vendor catalog sync endpoint today.</p>
+          </details>
+          <details>
+            <summary>What data does Procuro not access?</summary>
+            <p>Procuro does not use customer lists, invoices, payroll, or banking data for this savings workflow.</p>
+          </details>
+          <details>
+            <summary>Can we cancel anytime?</summary>
+            <p>Yes. You can cancel at any time from settings. Your access remains active through the paid period if applicable.</p>
+          </details>
+          <details>
+            <summary>Where can I get help?</summary>
+            <p>Use <a href="/support">Support</a> or email <a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a>. Typical first response is within one business day.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-section" aria-labelledby="final-cta-heading">
+      <div class="container">
+        <h2 id="final-cta-heading" class="section-title">Ready to Start Free and See Real Savings Opportunities?</h2>
+        <p class="section-subtitle">Activate your account, connect QuickBooks, and review prioritized opportunities from day one.</p>
+        <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="final" data-cta-name="start-free-trial">Start Free Trial</a>
+        <p class="cta-security">Security summary: encrypted token storage, minimal required access, transparent privacy policy.</p>
+      </div>
+    </section>
+  </main>
+
   <footer>
     <div class="container">
-      <div class="footer-content">
-        <div class="footer-section">
+      <div class="footer-grid">
+        <section>
           <h4>Procuro</h4>
-          <p>Save money on what you already buy. Integrated with QuickBooks Online.</p>
-        </div>
-        
-        <div class="footer-section">
+          <p>Purchase monitoring and savings alerts for QuickBooks-connected businesses.</p>
+        </section>
+        <section>
           <h4>Product</h4>
-          <ul>
-            <li><a href="#features">Features</a></li>
+          <ul class="footer-links">
             <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#features">Features</a></li>
             <li><a href="#pricing">Pricing</a></li>
-            <li><a href="https://github.com/seapigy/procuro-site" target="_blank">Documentation</a></li>
+            <li><a href="#faq">FAQ</a></li>
           </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Support</h4>
-          <ul>
-            <li><a href="/support">Help Center</a></li>
-            <li><a href="mailto:procuroapp@gmail.com">Contact Us</a></li>
+        </section>
+        <section>
+          <h4>Trust</h4>
+          <ul class="footer-links">
             <li><a href="/privacy">Privacy Policy</a></li>
             <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/support">Support Center</a></li>
           </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Connect</h4>
-          <ul>
-            <li><a href="https://quickbooks.intuit.com/apps" target="_blank">QuickBooks App Store</a></li>
-            <li><a href="https://github.com/seapigy/procuro-site" target="_blank">GitHub</a></li>
+        </section>
+        <section>
+          <h4>Contact</h4>
+          <ul class="footer-links">
             <li><a href="mailto:procuroapp@gmail.com">procuroapp@gmail.com</a></li>
+            <li><a href="https://quickbooks.intuit.com/apps" target="_blank" rel="noopener noreferrer">QuickBooks App Store</a></li>
+            <li><a href="https://github.com/seapigy/procuro-site" target="_blank" rel="noopener noreferrer">GitHub</a></li>
           </ul>
-        </div>
+        </section>
       </div>
-      
       <div class="footer-bottom">
-        <p>© 2025 Procuro. All rights reserved.</p>
+        <p>Copyright 2026 Procuro. All rights reserved.</p>
       </div>
     </div>
   </footer>
+
+  <div class="mobile-sticky-cta">
+    <a href="/activate" class="btn btn-primary js-track-cta" data-cta-location="mobile-sticky" data-cta-name="start-free-trial">Start Free Trial</a>
+  </div>
+
+  <script>
+    const menuToggle = document.getElementById('menu-toggle');
+    const mainNav = document.getElementById('main-nav');
+    if (menuToggle && mainNav) {
+      menuToggle.addEventListener('click', () => {
+        const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
+        menuToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        mainNav.setAttribute('data-open', expanded ? 'false' : 'true');
+      });
+      mainNav.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          menuToggle.setAttribute('aria-expanded', 'false');
+          mainNav.setAttribute('data-open', 'false');
+        });
+      });
+    }
+
+    function trackCta(location, name) {
+      const detail = { location, name, timestamp: Date.now() };
+      window.dispatchEvent(new CustomEvent('procuro:cta_click', { detail }));
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'procuro_cta_click', ...detail });
+    }
+
+    document.querySelectorAll('.js-track-cta').forEach((button) => {
+      button.addEventListener('click', () => {
+        trackCta(button.dataset.ctaLocation || 'unknown', button.dataset.ctaName || 'cta');
+      });
+    });
+  </script>
 </body>
 </html>
