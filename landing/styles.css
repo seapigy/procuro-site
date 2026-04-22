@@ -727,10 +727,11 @@ details p {
 .contact-actions {
   margin-top: 16px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
 }
 
 .contact-actions .btn {
@@ -753,6 +754,7 @@ details p {
   margin: 0;
   font-size: 0.85rem;
   color: #64748b;
+  text-align: center;
 }
 
 .contact-status {
