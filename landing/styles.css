@@ -410,12 +410,17 @@ h1 {
 }
 
 .how-section .section-title,
-.how-section .section-subtitle,
+.how-section .section-subtitle {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .feature-section .section-title,
 .feature-section .section-subtitle {
-  text-align: left;
-  margin-left: 0;
-  margin-right: 0;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .steps-grid {
