@@ -1,0 +1,31 @@
+-- RedefineTables
+PRAGMA defer_foreign_keys=ON;
+PRAGMA foreign_keys=OFF;
+CREATE TABLE "new_Item" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "sku" TEXT,
+    "category" TEXT,
+    "lastPaidPrice" REAL NOT NULL,
+    "lastCheckedPrice" REAL,
+    "quantityPerOrder" INTEGER NOT NULL DEFAULT 1,
+    "reorderIntervalDays" INTEGER NOT NULL DEFAULT 30,
+    "vendorName" TEXT,
+    "upc" TEXT,
+    "matchedRetailer" TEXT,
+    "matchedUrl" TEXT,
+    "matchedPrice" REAL,
+    "matchConfidence" REAL,
+    "isVagueName" BOOLEAN NOT NULL DEFAULT false,
+    "needsClarification" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Item_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+INSERT INTO "new_Item" ("category", "createdAt", "id", "lastCheckedPrice", "lastPaidPrice", "matchedPrice", "matchedRetailer", "matchedUrl", "name", "quantityPerOrder", "reorderIntervalDays", "sku", "upc", "updatedAt", "userId", "vendorName") SELECT "category", "createdAt", "id", "lastCheckedPrice", "lastPaidPrice", "matchedPrice", "matchedRetailer", "matchedUrl", "name", "quantityPerOrder", "reorderIntervalDays", "sku", "upc", "updatedAt", "userId", "vendorName" FROM "Item";
+DROP TABLE "Item";
+ALTER TABLE "new_Item" RENAME TO "Item";
+CREATE INDEX "Item_userId_idx" ON "Item"("userId");
+PRAGMA foreign_keys=ON;
+PRAGMA defer_foreign_keys=OFF;

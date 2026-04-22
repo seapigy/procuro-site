@@ -1,37 +1,27 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../lib/prisma';
+import { withCompany } from '../db/tenantDb';
 
 const router = Router();
 
 /**
- * GET /api/alerts
- * Get all alerts for the test user
+ * GET /api/alerts (tenant-scoped via RLS)
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    // For now, use test user
-    const user = await prisma.user.findFirst({
-      where: { email: 'test@procuroapp.com' },
+    const companyId = req.companyId;
+    const contextUser = req.companyContextUser;
+    if (companyId == null || !contextUser) return res.status(404).json({ error: 'User or company not found' });
+
+    const alerts = await withCompany(companyId, async (tx) => {
+      return tx.alert.findMany({
+        where: { userId: contextUser.id, companyId },
+        include: { item: true },
+        orderBy: { alertDate: 'desc' },
+        take: 50,
+      });
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const alerts = await prisma.alert.findMany({
-      where: { userId: user.id },
-      include: {
-        item: true,
-      },
-      orderBy: { alertDate: 'desc' },
-      take: 50, // Last 50 alerts
-    });
-
-    res.json({
-      success: true,
-      count: alerts.length,
-      alerts,
-    });
+    res.json({ success: true, count: alerts.length, alerts });
   } catch (error) {
     console.error('Error fetching alerts:', error);
     res.status(500).json({ 
@@ -42,31 +32,21 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/alerts/unreadCount
- * Get count of unseen alerts for the test user
+ * GET /api/alerts/unreadCount (tenant-scoped)
  */
 router.get('/unreadCount', async (req: Request, res: Response) => {
   try {
-    // For now, use test user
-    const user = await prisma.user.findFirst({
-      where: { email: 'test@procuroapp.com' },
+    const companyId = req.companyId;
+    const contextUser = req.companyContextUser;
+    if (companyId == null || !contextUser) return res.status(404).json({ error: 'User or company not found' });
+
+    const unreadCount = await withCompany(companyId, async (tx) => {
+      return tx.alert.count({
+        where: { userId: contextUser.id, companyId, seen: false },
+      });
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const unreadCount = await prisma.alert.count({
-      where: { 
-        userId: user.id,
-        seen: false,
-      },
-    });
-
-    res.json({
-      success: true,
-      unreadCount,
-    });
+    res.json({ success: true, unreadCount });
   } catch (error) {
     console.error('Error fetching unread count:', error);
     res.status(500).json({ 
@@ -77,35 +57,22 @@ router.get('/unreadCount', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/alerts/markAllSeen
- * Mark all alerts as seen for the test user
+ * POST /api/alerts/markAllSeen (tenant-scoped)
  */
 router.post('/markAllSeen', async (req: Request, res: Response) => {
   try {
-    // For now, use test user
-    const user = await prisma.user.findFirst({
-      where: { email: 'test@procuroapp.com' },
+    const companyId = req.companyId;
+    const contextUser = req.companyContextUser;
+    if (companyId == null || !contextUser) return res.status(404).json({ error: 'User or company not found' });
+
+    const result = await withCompany(companyId, async (tx) => {
+      return tx.alert.updateMany({
+        where: { userId: contextUser.id, companyId, seen: false },
+        data: { seen: true },
+      });
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const result = await prisma.alert.updateMany({
-      where: { 
-        userId: user.id,
-        seen: false,
-      },
-      data: {
-        seen: true,
-      },
-    });
-
-    res.json({
-      success: true,
-      markedCount: result.count,
-      message: `Marked ${result.count} alerts as seen`,
-    });
+    res.json({ success: true, markedCount: result.count, message: `Marked ${result.count} alerts as seen` });
   } catch (error) {
     console.error('Error marking alerts as seen:', error);
     res.status(500).json({ 

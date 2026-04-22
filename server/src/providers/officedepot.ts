@@ -27,7 +27,8 @@ export async function getPriceByKeyword(keyword: string, config?: ProviderConfig
     const pageProps = data.props.pageProps;
     const products = pageProps.searchResults?.products ||
                      pageProps.products ||
-                     pageProps.initialState?.products || [];
+                     pageProps.initialState?.products ||
+                     discoverOfficeDepotProducts(pageProps);
 
     if (products.length === 0) {
       console.log('⚠️  Office Depot: No products in search results');
@@ -136,5 +137,45 @@ function createEmptyResult(): PriceResult {
     title: null,
     image: null,
   };
+}
+
+function discoverOfficeDepotProducts(root: unknown): Array<Record<string, unknown>> {
+  const seen = new Set<unknown>();
+  let best: Array<Record<string, unknown>> = [];
+
+  const looksLikeProduct = (value: Record<string, unknown>): boolean => {
+    const hasTitle = typeof value.title === 'string' || typeof value.name === 'string';
+    const hasUrl = typeof value.url === 'string' || typeof value.productUrl === 'string';
+    const hasPrice =
+      value.price != null ||
+      value.pricing != null ||
+      value.currentPrice != null;
+    return hasTitle && (hasUrl || hasPrice);
+  };
+
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      if (node.length > 0 && typeof node[0] === 'object' && node[0] != null) {
+        const typed = node as Array<Record<string, unknown>>;
+        const score = typed.filter(looksLikeProduct).length;
+        if (score >= 1 && score > best.length) {
+          best = typed;
+        }
+      }
+      for (const entry of node) walk(entry);
+      return;
+    }
+
+    for (const value of Object.values(node as Record<string, unknown>)) {
+      walk(value);
+    }
+  };
+
+  walk(root);
+  return best;
 }
 

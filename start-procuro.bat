@@ -2,8 +2,8 @@
 echo Starting ProcuroApp servers...
 echo.
 
-echo Starting Backend Server...
-start "ProcuroApp Backend" cmd /k "cd server && npm run dev"
+echo Starting Backend Server with TEST_MODE...
+start "ProcuroApp Backend" cmd /k "cd server && set TEST_MODE=true && npm run dev"
 
 timeout /t 3 /nobreak >nul
 

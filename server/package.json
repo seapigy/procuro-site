@@ -10,9 +10,19 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:connect-test": "node scripts/test-db-connect.js",
+    "db:rls": "node scripts/run-rls.js",
     "seed": "tsx src/seed.ts",
     "mockdata": "tsx scripts/loadMockData.ts",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "tsx scripts/test-e2e.ts",
+    "test:rls": "tsx scripts/test-rls-leak.ts",
+    "tenancy:verify": "tsx scripts/verify-tenancy-mode.ts",
+    "verify:matching": "tsx scripts/verify-matching-upgrade.ts",
+    "test:amazon-discovery": "tsx scripts/run-amazon-discovery-test.ts",
+    "amazon-validation-report": "tsx scripts/amazon-validation-report.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -24,11 +34,16 @@
     "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
     "intuit-oauth": "^4.1.1",
     "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
-    "paapi5-nodejs-sdk": "^1.0.0"
+    "paapi5-nodejs-sdk": "^1.0.0",
+    "pg": "^8.18.0",
+    "puppeteer": "^24.32.0",
+    "recharts": "^3.5.1",
+    "stripe": "^14.25.0"
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",

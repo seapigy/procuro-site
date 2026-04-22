@@ -1,0 +1,253 @@
+[
+  {
+    "Id": "1",
+    "DocNumber": "PO-001",
+    "TxnDate": "2024-11-15",
+    "Line": [
+      {
+        "Id": "1",
+        "Amount": 45.99,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "1",
+            "name": "HP LaserJet Paper - 8.5x11"
+          },
+          "Qty": 10,
+          "UnitPrice": 4.599
+        },
+        "Description": "HP LaserJet Paper - 8.5x11, 500 sheets"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "2",
+    "DocNumber": "PO-002",
+    "TxnDate": "2024-11-20",
+    "Line": [
+      {
+        "Id": "2",
+        "Amount": 89.50,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "2",
+            "name": "Staples Copy Paper"
+          },
+          "Qty": 20,
+          "UnitPrice": 4.475
+        },
+        "Description": "Staples Copy Paper, 8.5x11, 500 sheets"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "3",
+    "DocNumber": "PO-003",
+    "TxnDate": "2024-11-25",
+    "Line": [
+      {
+        "Id": "3",
+        "Amount": 125.00,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "3",
+            "name": "HP 305 Black Ink Cartridge"
+          },
+          "Qty": 5,
+          "UnitPrice": 25.00
+        },
+        "Description": "HP 305 Black Ink Cartridge, Original"
+      }
+    ],
+    "VendorRef": {
+      "value": "2",
+      "name": "Tech Supplies Inc"
+    }
+  },
+  {
+    "Id": "4",
+    "DocNumber": "PO-004",
+    "TxnDate": "2024-12-01",
+    "Line": [
+      {
+        "Id": "4",
+        "Amount": 34.99,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "4",
+            "name": "BIC Round Stic Ballpoint Pens"
+          },
+          "Qty": 12,
+          "UnitPrice": 2.916
+        },
+        "Description": "BIC Round Stic Ballpoint Pens, Medium Point, Black, 12-pack"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "5",
+    "DocNumber": "PO-005",
+    "TxnDate": "2024-10-10",
+    "Line": [
+      {
+        "Id": "5",
+        "Amount": 45.99,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "1",
+            "name": "HP LaserJet Paper - 8.5x11"
+          },
+          "Qty": 10,
+          "UnitPrice": 4.599
+        },
+        "Description": "HP LaserJet Paper - 8.5x11, 500 sheets"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "6",
+    "DocNumber": "PO-006",
+    "TxnDate": "2024-09-15",
+    "Line": [
+      {
+        "Id": "6",
+        "Amount": 89.50,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "2",
+            "name": "Staples Copy Paper"
+          },
+          "Qty": 20,
+          "UnitPrice": 4.475
+        },
+        "Description": "Staples Copy Paper, 8.5x11, 500 sheets"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "7",
+    "DocNumber": "PO-007",
+    "TxnDate": "2024-12-02",
+    "Line": [
+      {
+        "Id": "7",
+        "Amount": 67.50,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "5",
+            "name": "Post-it Notes 3x3"
+          },
+          "Qty": 15,
+          "UnitPrice": 4.50
+        },
+        "Description": "Post-it Notes, 3x3 inches, Canary Yellow, 100 sheets per pad"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "8",
+    "DocNumber": "PO-008",
+    "TxnDate": "2024-11-05",
+    "Line": [
+      {
+        "Id": "8",
+        "Amount": 125.00,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "3",
+            "name": "HP 305 Black Ink Cartridge"
+          },
+          "Qty": 5,
+          "UnitPrice": 25.00
+        },
+        "Description": "HP 305 Black Ink Cartridge, Original"
+      }
+    ],
+    "VendorRef": {
+      "value": "2",
+      "name": "Tech Supplies Inc"
+    }
+  },
+  {
+    "Id": "9",
+    "DocNumber": "PO-009",
+    "TxnDate": "2024-10-20",
+    "Line": [
+      {
+        "Id": "9",
+        "Amount": 45.99,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "1",
+            "name": "HP LaserJet Paper - 8.5x11"
+          },
+          "Qty": 10,
+          "UnitPrice": 4.599
+        },
+        "Description": "HP LaserJet Paper - 8.5x11, 500 sheets"
+      }
+    ],
+    "VendorRef": {
+      "value": "1",
+      "name": "Office Supply Co"
+    }
+  },
+  {
+    "Id": "10",
+    "DocNumber": "PO-010",
+    "TxnDate": "2024-11-30",
+    "Line": [
+      {
+        "Id": "10",
+        "Amount": 156.00,
+        "DetailType": "ItemBasedExpenseLineDetail",
+        "ItemBasedExpenseLineDetail": {
+          "ItemRef": {
+            "value": "6",
+            "name": "Dell Wireless Mouse"
+          },
+          "Qty": 8,
+          "UnitPrice": 19.50
+        },
+        "Description": "Dell Wireless Mouse, Optical, USB"
+      }
+    ],
+    "VendorRef": {
+      "value": "2",
+      "name": "Tech Supplies Inc"
+    }
+  }
+]
+

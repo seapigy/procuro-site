@@ -1,31 +1,11 @@
-# Scheduled Jobs
+# Root `jobs/` folder (legacy)
 
-This directory contains cron job scripts for scheduled tasks such as:
-- Price monitoring and updates
-- Data synchronization
-- QuickBooks integration tasks
-- Report generation
+These scripts are **not** started by the root `package.json`. Production scheduling lives under **`server/src/workers/`** (e.g. `dailyPriceCheck.ts`).
 
-## Setup
+| File | Role |
+|------|------|
+| `dailyCheck.ts` | Imports root `providers/` (Target-only `getBestPriceForItem`). **Orphan** unless you run it manually. |
+| `price-monitor.ts` | Legacy; references old Amazon provider patterns. Verify before use. |
+| `scheduler.ts` | Fully commented example (`node-cron`); not imported by the server. |
 
-Jobs can be run using:
-- `node-cron` for in-process scheduling
-- Separate cron daemon (crontab)
-- Task scheduler (Windows Task Scheduler, systemd, etc.)
-
-## Example Job Structure
-
-```typescript
-import cron from 'node-cron';
-import { updatePrices } from './price-monitor';
-
-// Run every hour
-cron.schedule('0 * * * *', async () => {
-  await updatePrices();
-});
-```
-
-
-
-
-
+**Recommendation:** Delete or move to `legacy/jobs/` after confirming nothing in deployment references them. Do not confuse with `server/src/workers/`.

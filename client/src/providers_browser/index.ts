@@ -4,7 +4,6 @@
  */
 
 import { BrowserPriceResult, ProviderConfig } from './types';
-import * as walmart from './walmart.browser';
 import * as target from './target.browser';
 import * as homedepot from './homedepot.browser';
 import * as lowes from './lowes.browser';
@@ -12,7 +11,7 @@ import * as staples from './staples.browser';
 import * as officedepot from './officedepot.browser';
 
 // Re-export individual providers
-export { walmart, target, homedepot, lowes, staples, officedepot };
+export { target, homedepot, lowes, staples, officedepot };
 export * from './types';
 export * from './utils';
 
@@ -27,7 +26,6 @@ export async function checkAllRetailers(
   console.log(`   Keyword: "${keyword}"\n`);
 
   const providers = [
-    { name: 'Walmart', fn: walmart.getPriceByKeyword },
     { name: 'Target', fn: target.getPriceByKeyword },
     { name: 'Home Depot', fn: homedepot.getPriceByKeyword },
     { name: "Lowe's", fn: lowes.getPriceByKeyword },

@@ -6,26 +6,39 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// For PostgreSQL (production):
-// datasource db {
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// }
+// For local SQLite (optional): set provider = "sqlite" and DATABASE_URL = "file:./prisma/dev.db"
 
 model Company {
-  id        Int      @id @default(autoincrement())
-  name      String?
-  realmId   String   @unique
-  createdAt DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  name                String?
+  realmId             String?  @unique
+  createdAt           DateTime @default(now())
+  // Stripe billing fields
+  isSubscribed        Boolean  @default(false)
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  paymentMethodAddedAt DateTime?
+  trialStartedAt      DateTime?
+  trialEndsAt         DateTime?
+  importCompletedAt   DateTime?
+  importLastAttemptedAt DateTime?
+  // QuickBooks connection status
+  isQuickBooksConnected Boolean @default(false)
+  lastImportedItemCount Int?
+  connectionBrokenAt    DateTime?
 
   users   User[]
   invites Invite[]
+  items   Item[]
+  retailerPriceQuotes RetailerPriceQuote[]
+  itemRetailerMatches ItemRetailerMatch[]
 
   @@index([realmId])
+  @@index([stripeCustomerId])
 }
 
 model User {
@@ -57,39 +70,88 @@ model User {
 model Item {
   id                  Int      @id @default(autoincrement())
   userId              Int
+  companyId           Int      // Tenant isolation (required for RLS)
   name                String
   sku                 String?
   category            String?
-  lastPaidPrice       Float
+  baselinePrice       Float?    // Legacy; prefer baselineUnitPrice for savings
+  baselineUnitPrice   Float?    // Sticky baseline (P90 from QB history) used for savings
+  baselineSetAt       DateTime? // When baseline was established
+  baselineSource      String?   // 'qb_p90', 'qb_max_fallback', 'manual', etc.
+  bestDealUnitPrice   Float?    // Lowest observed price since baseline set
+  bestDealFoundAt     DateTime?
+  bestDealRetailer    String?
+  bestDealUrl         String?
+  lastPaidPrice       Float     // Most recent per-unit paid price from QB (line amount/qty); used for display and retail/Amazon matching reference, not for baseline savings
   lastCheckedPrice    Float?
   quantityPerOrder    Int      @default(1)
   reorderIntervalDays Int      @default(30)
   vendorName          String?
+  /// Product brand on package (not the same as vendor/supplier).
+  productBrand        String?
+  /// Optional Amazon/Bright Data search phrase; does not replace accounting item name.
+  amazonSearchHint    String?
   upc                 String?
   matchedRetailer     String?
   matchedUrl          String?
   matchedPrice        Float?
+  matchConfidence     Float?   // 0.0 to 1.0 - confidence score from matching algorithm
+  isVagueName         Boolean  @default(false) // Flag if name is too generic/vague
+  needsClarification   Boolean  @default(false) // Flag if user should improve name for better matching
+  // Enhanced Matching Accuracy fields
+  normalizedName      String?  // Store normalized/cleaned name for matching
+  matchStatus         String   @default("unmatched") // unmatched | auto_matched | needs_review | verified | overridden
+  matchProvider       String?  // e.g. "officedepot"
+  matchUrl            String?  // Canonical product URL (alternative to matchedUrl for consistency)
+  matchTitle          String?  // Title of matched product
+  matchPrice          Float?   // Last matched candidate price (alternative to matchedPrice)
+  matchReasons        Json?    // JSON array/object of reasons for transparency
+  isManuallyMatched   Boolean  @default(false) // If manually matched, prevents auto-overwrites
+  manualMatchProvider String?  // Provider for manual match
+  manualMatchUrl      String?  // URL for manual match
+  manualMatchTitle    String?  // Title for manual match
+  manualMatchNotes    String?  // Optional notes for manual match
+  lastMatchedAt       DateTime? // Last time matching was performed
+  // Amazon product matching (manually added columns)
+  amazonAsin          String?
+  amazonProductUrl    String?
+  amazonMatchedAt     DateTime?
+  // Smart Monitoring Engine fields
+  purchaseCount        Int      @default(0)     // how many times this item has been purchased (QuickBooks)
+  firstPurchasedAt     DateTime?                 // first time we saw a purchase for this item
+  lastPurchasedAt      DateTime?                 // most recent purchase date
+  estimatedMonthlyUnits Float?   @default(0)     // rough estimate of units/month
+  priorityScore        Float     @default(0)     // computed monitoring priority
+  isMonitored          Boolean   @default(false) // whether it's in the top-N monitored set
+  isPaused             Boolean   @default(false) // whether monitoring is paused by user
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   prices Price[]
   alerts Alert[]
+  priceHistory PriceHistory[]
+  retailerPriceQuotes RetailerPriceQuote[]
+  itemRetailerMatches ItemRetailerMatch[]
 
   @@index([userId])
+  @@index([companyId])
 }
 
 model Price {
-  id       Int      @id @default(autoincrement())
-  itemId   Int
-  retailer String
-  price    Float
-  url      String?
-  date     DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  companyId Int      // Tenant isolation (required for RLS)
+  retailer  String
+  price     Float
+  url       String?
+  date      DateTime @default(now())
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
+  @@index([companyId])
   @@index([retailer])
   @@index([date])
 }
@@ -98,6 +160,7 @@ model Alert {
   id                      Int      @id @default(autoincrement())
   itemId                  Int
   userId                  Int
+  companyId               Int      // Tenant isolation (required for RLS)
   retailer                String
   newPrice                Float
   oldPrice                Float
@@ -115,6 +178,7 @@ model Alert {
 
   @@index([itemId])
   @@index([userId])
+  @@index([companyId])
   @@index([alertDate])
   @@index([seen])
 }
@@ -122,6 +186,7 @@ model Alert {
 model SavingsSummary {
   id             Int      @id @default(autoincrement())
   userId         Int
+  companyId      Int      // Tenant isolation (required for RLS)
   monthlyTotal   Float    @default(0)
   yearToDate     Float    @default(0)
   lastCalculated DateTime @default(now())
@@ -129,6 +194,7 @@ model SavingsSummary {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([companyId])
 }
 
 model Invite {
@@ -144,4 +210,106 @@ model Invite {
   @@index([token])
   @@index([expiresAt])
   @@index([companyId])
+}
+
+model PriceHistory {
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  companyId Int      // Tenant isolation (required for RLS)
+  price     Float
+  retailer  String
+  createdAt DateTime @default(now())
+
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+model RetailerPriceQuote {
+  id        Int      @id @default(autoincrement())
+  companyId Int
+  itemId    Int
+  retailer  String
+  url       String?
+  unitPrice Float
+  currency  String   @default("USD")
+  capturedAt DateTime @default(now())
+  rawJson   Json?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, itemId, capturedAt])
+  @@index([companyId, capturedAt])
+}
+
+model BrightDataScrapeJob {
+  id            Int       @id @default(autoincrement())
+  companyId     Int
+  itemId        Int
+  provider      String
+  snapshotId    String    @unique
+  status        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastCheckedAt DateTime?
+  error         String?
+
+  @@index([companyId, status])
+  @@index([itemId, status])
+}
+
+model BrightDataRawSample {
+  id         Int      @id @default(autoincrement())
+  provider   String
+  companyId  Int
+  itemId     Int
+  capturedAt DateTime @default(now())
+  inputUrl   String?
+  rowsJson   Json?
+  statusCode Int?
+  notes      String?
+
+  @@index([provider, itemId])
+  @@index([companyId])
+}
+
+/// Multi-retailer architecture: one item can have matches at multiple retailers.
+/// Replaces retailer-specific Item columns (e.g. amazonAsin) long-term.
+model ItemRetailerMatch {
+  id                Int       @id @default(autoincrement())
+  itemId            Int
+  companyId         Int
+  retailer          String
+  retailerProductId String?
+  productUrl        String?
+  matchedAt         DateTime?
+  matchConfidence   Float?
+  matchTitle        String?
+  matchBrand        String?
+  isActive          Boolean   @default(true)
+  lastCheckedAt     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  item    Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, retailer])
+  @@index([itemId, retailer])
+  @@index([companyId, retailer])
+}
+
+/// Cross-tenant anonymized discovery hints (hashed product key only — no company PII).
+model ItemDiscoveryProfile {
+  key                  String    @id @db.VarChar(64)
+  hdWinCount           Int       @default(0)
+  amazonWinCount       Int       @default(0)
+  homeDepotSearchHint  String?
+  amazonSearchHint     String?
+  lastReinforcedAt     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }

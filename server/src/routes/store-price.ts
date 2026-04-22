@@ -70,10 +70,10 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Store the price in the database
     const priceRecord = await prisma.price.create({
       data: {
         itemId: item.id,
+        companyId: item.companyId,
         retailer: data.retailer,
         price: price,
         url: data.url || null,
@@ -94,48 +94,73 @@ router.post('/', async (req: Request, res: Response) => {
       },
     });
 
-    // Check if this price is significantly lower than lastPaidPrice
-    const savings = item.lastPaidPrice - price;
-    const savingsPercent = (savings / item.lastPaidPrice) * 100;
+    // Savings and alerts use baselineUnitPrice only (sticky baseline)
+    const baselineUnitPrice =
+      item.baselineUnitPrice != null && item.baselineUnitPrice > 0
+        ? item.baselineUnitPrice
+        : null;
 
+    let savingsAmount: number | null = null;
+    let savingsPercent: number | null = null;
     let alertCreated = false;
+    let dealStatus: 'deal' | 'no_deal' | 'no_price' | 'no_baseline' =
+      baselineUnitPrice == null ? 'no_baseline' : price < baselineUnitPrice ? 'deal' : 'no_deal';
 
-    // Create alert if savings >= 5%
-    if (savingsPercent >= 5) {
-      const estimatedMonthlySavings =
-        (savings * item.quantityPerOrder * 30) / (item.reorderIntervalDays || 30);
+    if (baselineUnitPrice != null && price < baselineUnitPrice) {
+      savingsAmount = baselineUnitPrice - price;
+      savingsPercent = (savingsAmount / baselineUnitPrice) * 100;
+      if (savingsPercent >= 5) {
+        const estimatedMonthlySavings =
+          (savingsAmount * item.quantityPerOrder * 30) / (item.reorderIntervalDays || 30);
+        await prisma.alert.create({
+          data: {
+            userId: item.userId,
+            itemId: item.id,
+            companyId: item.companyId,
+            retailer: data.retailer,
+            oldPrice: baselineUnitPrice,
+            newPrice: price,
+            priceDropAmount: savingsAmount,
+            savingsPerOrder: savingsAmount * item.quantityPerOrder,
+            estimatedMonthlySavings,
+            url: data.url || '',
+            viewed: false,
+            seen: false,
+            alertDate: new Date(),
+            dateTriggered: new Date(),
+          },
+        });
+        alertCreated = true;
+        console.log(`🔔 Alert created: Save $${savingsAmount.toFixed(2)} (${savingsPercent.toFixed(1)}%) on ${item.name} from ${data.retailer} (baseline: $${baselineUnitPrice.toFixed(2)})`);
+      }
+    } else if (baselineUnitPrice == null) {
+      console.warn(`⚠️  No baseline unit price for item ${item.id}, skipping alert`);
+    }
 
-      await prisma.alert.create({
+    // Best-deal tracking
+    const currentBest = item.bestDealUnitPrice;
+    if (currentBest == null || price < currentBest) {
+      await prisma.item.update({
+        where: { id: item.id },
         data: {
-          userId: item.userId,
-          itemId: item.id,
-          retailer: data.retailer,
-          oldPrice: item.lastPaidPrice,
-          newPrice: price,
-          priceDropAmount: savings,
-          savingsPerOrder: savings * item.quantityPerOrder,
-          estimatedMonthlySavings,
-          url: data.url || '',
-          viewed: false,
-          seen: false,
-          alertDate: new Date(),
-          dateTriggered: new Date(),
+          bestDealUnitPrice: price,
+          bestDealFoundAt: new Date(),
+          bestDealRetailer: data.retailer,
+          bestDealUrl: data.url,
         },
       });
-
-      alertCreated = true;
-      console.log(`🔔 Alert created: Save $${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%) on ${item.name} from ${data.retailer}`);
     }
 
     res.json({
       success: true,
       stored: true,
       priceId: priceRecord.id,
-      savings: savings > 0 ? savings : null,
-      savingsPercent: savings > 0 ? savingsPercent : null,
+      savingsAmount,
+      savingsPercent,
+      dealStatus,
       alertCreated,
       message: alertCreated
-        ? `Price stored and alert created! Save $${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%)`
+        ? `Price stored and alert created! Save $${savingsAmount!.toFixed(2)} (${savingsPercent!.toFixed(1)}%)`
         : 'Price stored successfully',
     });
   } catch (error) {
@@ -181,10 +206,10 @@ router.post('/bulk', async (req: Request, res: Response) => {
         continue;
       }
 
-      // Store price
       const priceRecord = await prisma.price.create({
         data: {
           itemId: item.id,
+          companyId: item.companyId,
           retailer: result.retailer,
           price: result.price,
           url: result.url || null,
@@ -207,50 +232,70 @@ router.post('/bulk', async (req: Request, res: Response) => {
         };
       }
 
-      // Check for alerts
-      const savings = item.lastPaidPrice - result.price;
-      const savingsPercent = (savings / item.lastPaidPrice) * 100;
-
-      if (savingsPercent >= 5) {
-        const estimatedMonthlySavings =
-          (savings * item.quantityPerOrder * 30) / (item.reorderIntervalDays || 30);
-
-        await prisma.alert.create({
-          data: {
-            userId: item.userId,
-            itemId: item.id,
+      const baselineUnitPrice =
+        item.baselineUnitPrice != null && item.baselineUnitPrice > 0
+          ? item.baselineUnitPrice
+          : null;
+      if (baselineUnitPrice != null) {
+        const priceDropPercent = (baselineUnitPrice - result.price) / baselineUnitPrice;
+        if (priceDropPercent >= 0.05) {
+          const savings = baselineUnitPrice - result.price;
+          const estimatedMonthlySavings =
+            (savings * item.quantityPerOrder * 30) / (item.reorderIntervalDays || 30);
+          await prisma.alert.create({
+            data: {
+              userId: item.userId,
+              itemId: item.id,
+              companyId: item.companyId,
+              retailer: result.retailer,
+              oldPrice: baselineUnitPrice,
+              newPrice: result.price,
+              priceDropAmount: savings,
+              savingsPerOrder: savings * item.quantityPerOrder,
+              estimatedMonthlySavings,
+              url: result.url || '',
+              viewed: false,
+              seen: false,
+              alertDate: new Date(),
+              dateTriggered: new Date(),
+            },
+          });
+          alertsCreated.push({
             retailer: result.retailer,
-            oldPrice: item.lastPaidPrice,
-            newPrice: result.price,
-            priceDropAmount: savings,
-            savingsPerOrder: savings * item.quantityPerOrder,
-            estimatedMonthlySavings,
-            url: result.url || '',
-            viewed: false,
-            seen: false,
-            alertDate: new Date(),
-            dateTriggered: new Date(),
-          },
-        });
-
-        alertsCreated.push({
-          retailer: result.retailer,
-          savings,
-          savingsPercent,
-        });
+            savings,
+            savingsPercent: priceDropPercent * 100,
+          });
+        }
       }
     }
 
-    // Update item with best price found
+    // Update item with best price found and best-deal tracking
     if (bestPrice) {
+      const updateData: {
+        lastCheckedPrice: number;
+        matchedRetailer: string;
+        matchedUrl?: string;
+        matchedPrice: number;
+        bestDealUnitPrice?: number;
+        bestDealFoundAt?: Date;
+        bestDealRetailer?: string;
+        bestDealUrl?: string | null;
+      } = {
+        lastCheckedPrice: bestPrice.price,
+        matchedRetailer: bestPrice.retailer,
+        matchedUrl: bestPrice.url || undefined,
+        matchedPrice: bestPrice.price,
+      };
+      const currentBest = item.bestDealUnitPrice;
+      if (currentBest == null || bestPrice.price < currentBest) {
+        updateData.bestDealUnitPrice = bestPrice.price;
+        updateData.bestDealFoundAt = new Date();
+        updateData.bestDealRetailer = bestPrice.retailer;
+        updateData.bestDealUrl = bestPrice.url;
+      }
       await prisma.item.update({
         where: { id: item.id },
-        data: {
-          lastCheckedPrice: bestPrice.price,
-          matchedRetailer: bestPrice.retailer,
-          matchedUrl: bestPrice.url || undefined,
-          matchedPrice: bestPrice.price,
-        },
+        data: updateData,
       });
     }
 

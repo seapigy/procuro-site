@@ -1,0 +1,8 @@
+﻿{
+    "success":  false,
+    "retailer":  "staples",
+    "items":  [
+
+              ],
+    "error":  "API error: 404 Not Found"
+}

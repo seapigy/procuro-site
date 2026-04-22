@@ -80,7 +80,7 @@ async function loadMockData() {
         sku: 'FEL3213501',
         category: 'Office Equipment',
         lastPaidPrice: 89.99,
-        vendorName: 'Walmart Business',
+        vendorName: 'National Retail',
         reorderIntervalDays: 365,
         upc: '043859677344'
       },
@@ -116,9 +116,9 @@ async function loadMockData() {
         },
         {
           itemId: item.id,
-          retailer: 'Walmart',
+          retailer: 'Home Depot',
           price: basePrice * 0.95, // 5% cheaper
-          url: `https://walmart.com/ip/MOCK${item.id}`,
+          url: `https://www.homedepot.com/p/MOCK${item.id}`,
           date: new Date()
         },
         {

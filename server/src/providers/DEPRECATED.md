@@ -104,9 +104,8 @@ These files are **kept for reference only** and should not be imported or used:
 ## Questions?
 
 See updated documentation:
-- `docs/PROVIDER-VERIFICATION-REPORT.md`
-- `docs/LOCAL-DEV.md`
-- `client/src/providers_browser/README.md`
+- [AGENTS.md](../../../AGENTS.md), [docs/DEVELOPMENT.md](../../../docs/DEVELOPMENT.md)
+- [client/src/providers_browser/README.md](../../../client/src/providers_browser/README.md)
 
 
 

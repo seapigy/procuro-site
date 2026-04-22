@@ -12,17 +12,23 @@ export default defineConfig({
     },
   },
   server: {
-    host: 'dev.procuroapp.com', // Support custom domain for CORS bypass
+    host: 'localhost', // Use localhost for easier access
     port: 5173,
     strictPort: true,
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        // Use environment variable for API URL, fallback to localhost for dev
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    globals: false,
   },
 });
 

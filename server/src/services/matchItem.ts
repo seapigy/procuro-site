@@ -1,6 +1,18 @@
-import { WalmartProvider } from '../../../providers/walmart';
-import { TargetProvider } from '../../../providers/target';
-// import { AmazonProvider } from '../../../providers/amazon'; // Once PA-API unlocks
+import { getBrightDataConfig } from '../config/brightData';
+import { normalizePrice } from './brightData';
+import { getAmazonDiscoveryQuotesWithStats } from '../providers/amazonBrightDataProvider';
+import { homeDepotBrightDataProvider } from '../providers/homeDepotBrightDataProvider';
+import type { RetailerQuote } from '../types/retailer';
+import { buildAggregateProviderKeyword } from './amazonDiscoveryKeyword';
+import { normalizeItemName } from './matching/normalize';
+import { getRetailerVisibility, type RetailerVisibility } from './retailerSearchPolicy';
+import {
+  buildDiscoveryProfileKey,
+  getDiscoveryProfile,
+  mergeDiscoveryRouting,
+  isGlobalDiscoveryProfilesEnabled,
+  reinforceDiscoveryFromCatalogMatch,
+} from './discoveryProfile';
 
 interface RetailerMatch {
   retailer: string;
@@ -15,29 +27,10 @@ interface MatchResult {
   title: string;
   price: number;
   url: string;
+  confidence: number; // 0.0 to 1.0 - confidence score
 }
 
-/**
- * Normalize item name for better searching
- */
-function normalizeItemName(itemName: string): string {
-  // Lowercase
-  let normalized = itemName.toLowerCase();
-
-  // Remove punctuation
-  normalized = normalized.replace(/[^\w\s]/g, ' ');
-
-  // Remove stopwords
-  const stopwords = ['the', 'pack', 'box', 'case', 'count', 'ct', 'of', 'a', 'an'];
-  const words = normalized.split(/\s+/).filter(word => {
-    return word.length > 0 && !stopwords.includes(word);
-  });
-
-  // Rejoin
-  normalized = words.join(' ');
-
-  return normalized.trim();
-}
+// Old normalizeItemName removed - now using matching/normalize.ts
 
 /**
  * Calculate string similarity using Levenshtein distance
@@ -102,131 +95,459 @@ function extractPackagingSize(text: string): number | null {
 }
 
 /**
- * Score a result based on multiple factors
+ * Detect if an item name is too vague/generic
+ * Returns true if the name needs more detail for accurate matching
  */
-function scoreResult(
-  result: { title: string; price: number; url: string },
-  normalizedQuery: string,
-  referencePrice: number
-): number {
-  let score = 0;
-
-  // 1. Title similarity (weight: 60%)
-  const normalizedTitle = normalizeItemName(result.title);
-  const titleSimilarity = calculateSimilarity(normalizedQuery, normalizedTitle);
-  score += titleSimilarity * 0.6;
-
-  // 2. Price reasonableness (weight: 20%)
-  if (isPriceReasonable(result.price, referencePrice)) {
-    // Closer to reference price = better score
-    const priceDiff = Math.abs(result.price - referencePrice) / referencePrice;
-    const priceScore = Math.max(0, 1 - priceDiff);
-    score += priceScore * 0.2;
-  } else {
-    // Unreasonable price = heavy penalty
-    score *= 0.3;
-  }
-
-  // 3. Packaging size stability (weight: 20%)
-  const querySize = extractPackagingSize(normalizedQuery);
-  const resultSize = extractPackagingSize(result.title);
+export function isVagueName(itemName: string): boolean {
+  const name = itemName.trim().toLowerCase();
   
-  if (querySize && resultSize) {
-    // Prefer similar packaging sizes
-    const sizeRatio = Math.min(querySize, resultSize) / Math.max(querySize, resultSize);
-    score += sizeRatio * 0.2;
-  } else {
-    // No size info, give neutral score
-    score += 0.1;
+  // Very short names (1-2 words) are likely vague
+  const words = name.split(/\s+/).filter(w => w.length > 0);
+  if (words.length <= 2) {
+    // Check if it's a common generic word
+    const genericWords = [
+      'nails', 'screws', 'bolts', 'nuts', 'washers',
+      'paper', 'pens', 'pencils', 'markers', 'tape',
+      'tools', 'supplies', 'materials', 'parts', 'items',
+      'boxes', 'bags', 'containers', 'labels', 'tags',
+      'cables', 'wires', 'tubes', 'pipes', 'hoses',
+      'plates', 'sheets', 'panels', 'boards', 'blocks'
+    ];
+    
+    if (genericWords.includes(name) || genericWords.some(word => name === word + 's')) {
+      return true;
+    }
+    
+    // Single word items are usually vague (unless it's a brand name)
+    if (words.length === 1 && name.length < 10) {
+      return true;
+    }
   }
-
-  return score;
+  
+  // Check for lack of specific details
+  // Good names usually have: brand, size, model, type, specifications
+  const hasBrand = /^(simpson|hp|bic|scotch|3m|staple|office|dell|lenovo|canon|epson)/i.test(name);
+  const hasSize = /\d+\s*(in|inch|ft|foot|cm|mm|oz|lb|g|kg|ml|l|pack|count|ct)/i.test(name);
+  const hasModel = /(model|sku|part|#|no\.|number)\s*[a-z0-9]/i.test(name);
+  const hasSpecs = /(galvanized|stainless|heavy|duty|premium|professional|commercial)/i.test(name);
+  
+  // If name is short and lacks any specific details, it's vague
+  if (words.length <= 3 && !hasBrand && !hasSize && !hasModel && !hasSpecs) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
- * Match an item to the best retailer product
+ * Determine if an item needs clarification from the user
+ * Based on vague name detection and match confidence
+ */
+export function needsClarification(itemName: string, matchConfidence: number | null): boolean {
+  // If name is vague, it needs clarification
+  if (isVagueName(itemName)) {
+    return true;
+  }
+  
+  // If match confidence is low (< 0.5), it needs clarification
+  if (matchConfidence !== null && matchConfidence < 0.5) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Old scoreResult removed - now using matching/score.ts
+
+/**
+ * Enhanced match result with decision information
+ */
+export interface EnhancedMatchResult extends MatchResult {
+  status: 'unmatched' | 'auto_matched' | 'needs_review' | 'verified' | 'overridden';
+  alternatives?: Array<{
+    retailer: string;
+    title: string;
+    price: number;
+    url: string;
+    confidence: number;
+  }>;
+  normalizedName?: string;
+  matchReasons?: any;
+}
+
+/** Optional fields for Amazon (Bright Data) discovery keyword building. */
+export type MatchItemAmazonContext = {
+  productBrand?: string | null;
+  amazonSearchHint?: string | null;
+  amazonAsin?: string | null;
+  /** Full keyword override (e.g. global ItemDiscoveryProfile). */
+  discoveryKeywordOverride?: string | null;
+};
+
+/**
+ * Whether Fix Match / rematch can call Amazon Bright Data discovery.
+ * If false, `matchItemToRetailers` returns null without calling the network.
+ */
+export function amazonDiscoveryReady(): { ok: boolean; reason?: string } {
+  const bd = getBrightDataConfig();
+  if (!bd.enabled || !bd.apiKey || !bd.amazonDatasetId) {
+    return {
+      ok: false,
+      reason:
+        'Amazon product search is not configured. Set BRIGHTDATA_ENABLED=true, BRIGHTDATA_API_KEY, and BRIGHTDATA_AMAZON_DATASET_ID (or BRIGHTDATA_DATASET_ID) in server/.env, then restart the API.',
+    };
+  }
+  return { ok: true };
+}
+
+/** Home Depot Bright Data dataset (same as price-check discovery). */
+export function homeDepotDiscoveryReady(): { ok: boolean; reason?: string } {
+  const bd = getBrightDataConfig();
+  if (!bd.enabled || !bd.apiKey || !bd.homeDepotDatasetId) {
+    return {
+      ok: false,
+      reason:
+        'Home Depot product search is not configured. Set BRIGHTDATA_ENABLED=true, BRIGHTDATA_API_KEY, and BRIGHTDATA_HOMEDEPOT_DATASET_ID in server/.env, then restart the API.',
+    };
+  }
+  return { ok: true };
+}
+
+/** Display name for Item.matchedRetailer (matchProvider is lowercase slug). */
+export function formatMatchedRetailerDisplay(matchProvider: string): string {
+  const p = matchProvider.toLowerCase();
+  if (p === 'amazon') return 'Amazon';
+  if (p === 'homedepot') return 'Home Depot';
+  return matchProvider.charAt(0).toUpperCase() + matchProvider.slice(1);
+}
+
+function titleFromAmazonQuote(q: RetailerQuote, fallback: string): string {
+  const r = q.rawJson;
+  if (r && typeof r === 'object') {
+    const o = r as Record<string, unknown>;
+    const t = o.title ?? o.name ?? o.product_title;
+    if (typeof t === 'string' && t.trim()) return t.trim();
+  }
+  return fallback;
+}
+
+function titleFromRetailerQuote(q: RetailerQuote, fallback: string): string {
+  const r = q.rawJson;
+  if (r && typeof r === 'object') {
+    const o = r as Record<string, unknown>;
+    const t = o.title ?? o.name ?? o.product_title ?? o.product_name;
+    if (typeof t === 'string' && t.trim()) return t.trim();
+  }
+  return fallback;
+}
+
+/**
+ * Match an item to a retailer product. **Amazon only** (Bright Data dataset search).
+ * Does not call Office Depot or other legacy HTML retailers.
  */
 export async function matchItemToRetailers(
   itemName: string,
-  lastPaidPrice: number = 0
-): Promise<MatchResult | null> {
-  console.log(`\n🔍 Matching item: "${itemName}"`);
+  lastPaidPrice: number = 0,
+  isManuallyMatched: boolean = false,
+  ctx?: MatchItemAmazonContext
+): Promise<EnhancedMatchResult | null> {
+  console.log(`\n🔍 Matching item (Amazon only): "${itemName}"`);
 
-  // Normalize the search query
-  const normalizedName = normalizeItemName(itemName);
-  console.log(`   Normalized: "${normalizedName}"`);
+  const itemMeta = normalizeItemName(itemName);
+  console.log(`   Normalized: "${itemMeta.normalized}"`);
+  if (itemMeta.brand) console.log(`   Brand: ${itemMeta.brand}`);
+  if (itemMeta.size) console.log(`   Size: ${itemMeta.size}`);
+  if (itemMeta.count) console.log(`   Count: ${itemMeta.count}`);
+  if (itemMeta.model) console.log(`   Model: ${itemMeta.model}`);
+
+  const bd = getBrightDataConfig();
+  if (!bd.enabled || !bd.apiKey || !bd.amazonDatasetId) {
+    console.log(
+      '[matchItem] Amazon discovery skipped (Bright Data not configured). Rematch will not call Amazon until BRIGHTDATA_* env is set.'
+    );
+    return null;
+  }
 
   try {
-    // Call all providers in parallel
-    const [walmartResult, targetResult] = await Promise.all([
-      WalmartProvider.getPriceByName(itemName).catch(err => {
-        console.error('Walmart search error:', err.message);
-        return null;
-      }),
-      TargetProvider.getPriceByName(itemName).catch(err => {
-        console.error('Target search error:', err.message);
-        return null;
-      }),
-      // AmazonProvider.getPriceByName(itemName) // Once PA-API unlocks
-    ]);
+    const discovery = await getAmazonDiscoveryQuotesWithStats(
+      {
+        name: itemName,
+        lastPaidPrice: lastPaidPrice || null,
+        productBrand: ctx?.productBrand ?? null,
+        amazonSearchHint: ctx?.amazonSearchHint ?? null,
+        amazonAsin: ctx?.amazonAsin ?? null,
+        discoveryKeywordOverride: ctx?.discoveryKeywordOverride ?? null,
+      },
+      { allowFallbackSecondQuery: true }
+    );
 
-    // Collect valid results
-    const candidates: RetailerMatch[] = [];
+    console.log(`   Amazon discovery keyword: "${discovery.discoveryKeyword}" (rows: ${discovery.rawRowsReturned}, quotes: ${discovery.quotes.length})`);
 
-    if (walmartResult && walmartResult.price !== null && walmartResult.url !== null) {
-      const score = scoreResult(
-        { title: itemName, price: walmartResult.price, url: walmartResult.url },
-        normalizedName,
-        lastPaidPrice
-      );
-      candidates.push({
-        retailer: 'Walmart',
-        title: itemName, // Walmart API doesn't return title in current implementation
-        price: walmartResult.price,
-        url: walmartResult.url,
-        score,
-      });
-    }
-
-    if (targetResult && targetResult.price !== null && targetResult.url !== null) {
-      const score = scoreResult(
-        { title: itemName, price: targetResult.price, url: targetResult.url },
-        normalizedName,
-        lastPaidPrice
-      );
-      candidates.push({
-        retailer: 'Target',
-        title: itemName, // Target API doesn't return title in current implementation
-        price: targetResult.price,
-        url: targetResult.url,
-        score,
-      });
-    }
-
-    if (candidates.length === 0) {
-      console.log('❌ No matches found');
+    if (discovery.quotes.length === 0) {
+      console.log(`❌ No Amazon match: ${discovery.emptyReason || 'no quotes'}`);
       return null;
     }
 
-    // Sort by score (highest first)
-    candidates.sort((a, b) => b.score - a.score);
+    const q = discovery.quotes[0];
+    const url = typeof q.url === 'string' ? q.url.trim() : '';
+    const price = q.unitPrice;
+    if (!url || price == null || !Number.isFinite(price) || price <= 0) {
+      console.log('❌ Amazon quote missing URL or price');
+      return null;
+    }
 
-    const bestMatch = candidates[0];
-    console.log(`✅ Best match: ${bestMatch.retailer}`);
-    console.log(`   Price: $${bestMatch.price.toFixed(2)}`);
-    console.log(`   Score: ${(bestMatch.score * 100).toFixed(1)}%`);
-    console.log(`   URL: ${bestMatch.url}`);
+    const title = titleFromAmazonQuote(q, itemName);
+    const confidence = 0.72;
+    const status: EnhancedMatchResult['status'] = isManuallyMatched ? 'overridden' : 'needs_review';
+
+    console.log(`✅ Amazon match: ${title.slice(0, 80)}… $${price.toFixed(2)}`);
 
     return {
-      retailer: bestMatch.retailer,
-      title: bestMatch.title,
-      price: bestMatch.price,
-      url: bestMatch.url,
+      retailer: 'amazon',
+      title,
+      price,
+      url,
+      confidence,
+      status,
+      alternatives: [],
+      normalizedName: itemMeta.normalized,
+      matchReasons: {
+        source: 'amazon_bright_data',
+        discoveryKeyword: discovery.discoveryKeyword,
+        usedFallbackKeyword: discovery.usedFallbackKeyword,
+        fallbackDiscoveryKeyword: discovery.fallbackDiscoveryKeyword,
+        emptyReason: discovery.emptyReason,
+        matcherTopRejection: discovery.matcherTopRejection,
+      },
     };
   } catch (error) {
-    console.error('Error matching item to retailers:', error);
+    console.error('Error matching item (Amazon):', error);
     return null;
   }
+}
+
+/**
+ * Home Depot Bright Data catalog match (same pipeline as price-check discovery).
+ */
+export async function matchItemToHomeDepot(params: {
+  itemName: string;
+  lastPaidPrice: number;
+  isManuallyMatched: boolean;
+  companyId: number;
+  itemId: number;
+  productBrand?: string | null;
+  amazonSearchHint?: string | null;
+  amazonAsin?: string | null;
+  /** Full keyword override (e.g. global ItemDiscoveryProfile). */
+  homeDepotKeywordOverride?: string | null;
+}): Promise<EnhancedMatchResult | null> {
+  const ready = homeDepotDiscoveryReady();
+  if (!ready.ok) {
+    console.log('[matchItem] Home Depot discovery skipped:', ready.reason);
+    return null;
+  }
+
+  console.log(`\n🔍 Matching item (Home Depot): "${params.itemName}"`);
+
+  const itemMeta = normalizeItemName(params.itemName);
+  const keyword =
+    params.homeDepotKeywordOverride?.trim() ||
+    buildAggregateProviderKeyword({
+      name: params.itemName,
+      productBrand: params.productBrand,
+      amazonSearchHint: params.amazonSearchHint,
+      amazonAsin: params.amazonAsin,
+    });
+  console.log(`   Home Depot discovery keyword: "${keyword}"`);
+
+  try {
+    const quotes = await homeDepotBrightDataProvider.getQuotesForItem({
+      companyId: params.companyId,
+      itemId: params.itemId,
+      name: keyword,
+      matchItemName: params.itemName,
+      lastPaidPrice: params.lastPaidPrice ?? undefined,
+    });
+
+    if (quotes.length === 0) {
+      console.log('❌ No Home Depot match: empty quotes');
+      return null;
+    }
+
+    const q = quotes[0];
+    const url = typeof q.url === 'string' ? q.url.trim() : '';
+    let price: number | undefined = q.unitPrice;
+    if (price == null || !Number.isFinite(price) || price <= 0) {
+      const raw = q.rawJson;
+      if (raw && typeof raw === 'object') {
+        const np = normalizePrice(raw);
+        if (np != null && np > 0 && np < 100000) price = np;
+      }
+    }
+    if (!url || price == null || !Number.isFinite(price) || price <= 0) {
+      console.log('❌ Home Depot quote missing URL or price');
+      return null;
+    }
+
+    const title = titleFromRetailerQuote(q, params.itemName);
+    const status: EnhancedMatchResult['status'] = params.isManuallyMatched ? 'overridden' : 'needs_review';
+
+    console.log(`✅ Home Depot match: ${title.slice(0, 80)}… $${price.toFixed(2)}`);
+
+    return {
+      retailer: 'homedepot',
+      title,
+      price,
+      url,
+      confidence: 0.72,
+      status,
+      alternatives: [],
+      normalizedName: itemMeta.normalized,
+      matchReasons: {
+        source: 'home_depot_bright_data',
+        discoveryKeyword: keyword,
+      },
+    };
+  } catch (error) {
+    console.error('Error matching item (Home Depot):', error);
+    return null;
+  }
+}
+
+export type CatalogMatchDiagnostics = {
+  visibility: RetailerVisibility;
+  amazonAttempted: boolean;
+  homeDepotAttempted: boolean;
+};
+
+/**
+ * Catalog match for Fix Match / create-item: uses the same retailer visibility rules as price checks
+ * (e.g. hardware → Home Depot only; office supplies → Amazon only when configured).
+ */
+export async function matchCatalogForItem(options: {
+  name: string;
+  category: string | null | undefined;
+  lastPaidPrice: number;
+  isManuallyMatched: boolean;
+  companyId: number;
+  itemId: number;
+  productBrand?: string | null;
+  amazonSearchHint?: string | null;
+  amazonAsin?: string | null;
+}): Promise<{ match: EnhancedMatchResult | null; diagnostics: CatalogMatchDiagnostics }> {
+  const visibility = getRetailerVisibility({
+    name: options.name,
+    category: options.category,
+  });
+
+  const profileKey = buildDiscoveryProfileKey({
+    name: options.name,
+    productBrand: options.productBrand,
+    amazonAsin: options.amazonAsin,
+  });
+  const profileRow =
+    isGlobalDiscoveryProfilesEnabled() && profileKey
+      ? await getDiscoveryProfile(profileKey)
+      : null;
+
+  const merged = mergeDiscoveryRouting(
+    visibility,
+    profileRow
+      ? {
+          hdWinCount: profileRow.hdWinCount,
+          amazonWinCount: profileRow.amazonWinCount,
+          homeDepotSearchHint: profileRow.homeDepotSearchHint,
+          amazonSearchHint: profileRow.amazonSearchHint,
+        }
+      : null,
+    isGlobalDiscoveryProfilesEnabled()
+  );
+
+  let amazonAttempted = false;
+  let homeDepotAttempted = false;
+  let match: EnhancedMatchResult | null = null;
+
+  const amazonOk = amazonDiscoveryReady();
+  const hdOk = homeDepotDiscoveryReady();
+
+  const tryHdFirst =
+    merged.prefersHomeDepotFirst &&
+    merged.homeDepot &&
+    merged.amazon &&
+    hdOk.ok &&
+    amazonOk.ok;
+
+  const amazonCtx: MatchItemAmazonContext = {
+    productBrand: options.productBrand,
+    amazonSearchHint: options.amazonSearchHint,
+    amazonAsin: options.amazonAsin,
+    discoveryKeywordOverride: merged.amazonKeywordOverride,
+  };
+
+  const hdParamsBase = {
+    itemName: options.name,
+    lastPaidPrice: options.lastPaidPrice,
+    isManuallyMatched: options.isManuallyMatched,
+    companyId: options.companyId,
+    itemId: options.itemId,
+    productBrand: options.productBrand,
+    amazonSearchHint: options.amazonSearchHint,
+    amazonAsin: options.amazonAsin,
+    homeDepotKeywordOverride: merged.homeDepotKeywordOverride,
+  };
+
+  if (tryHdFirst) {
+    homeDepotAttempted = true;
+    match = await matchItemToHomeDepot(hdParamsBase);
+  }
+
+  if (!match && merged.amazon && amazonOk.ok) {
+    amazonAttempted = true;
+    match = await matchItemToRetailers(
+      options.name,
+      options.lastPaidPrice,
+      options.isManuallyMatched,
+      amazonCtx
+    );
+  }
+
+  if (!match && merged.homeDepot && hdOk.ok && !homeDepotAttempted) {
+    homeDepotAttempted = true;
+    match = await matchItemToHomeDepot(hdParamsBase);
+  }
+
+  if (process.env.DISCOVERY_DEBUG === 'true') {
+    console.log(
+      `[matchCatalog] policy amazon=${visibility.amazon} homeDepot=${visibility.homeDepot} prefersHdFirst=${merged.prefersHomeDepotFirst}` +
+        (visibility.reason ? ` (${visibility.reason})` : '') +
+        ` → amazonAttempted=${amazonAttempted} hdAttempted=${homeDepotAttempted} gotMatch=${!!match}`
+    );
+  }
+
+  if (match && isGlobalDiscoveryProfilesEnabled() && profileKey) {
+    const r = match.matchReasons;
+    let dk = '';
+    if (r && typeof r === 'object' && 'discoveryKeyword' in r) {
+      const v = (r as { discoveryKeyword?: unknown }).discoveryKeyword;
+      if (typeof v === 'string' && v.trim()) dk = v.trim();
+    }
+    if (dk) {
+      await reinforceDiscoveryFromCatalogMatch({
+        key: profileKey,
+        retailer: match.retailer === 'homedepot' ? 'homedepot' : 'amazon',
+        discoveryKeyword: dk,
+      });
+    }
+  }
+
+  return {
+    match,
+    diagnostics: {
+      visibility,
+      amazonAttempted,
+      homeDepotAttempted,
+    },
+  };
 }
 
 // Test function (run standalone)

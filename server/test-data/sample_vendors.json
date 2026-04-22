@@ -1,0 +1,15 @@
+[
+  {
+    "Id": "1",
+    "DisplayName": "Office Supply Co",
+    "CompanyName": "Office Supply Co",
+    "Active": true
+  },
+  {
+    "Id": "2",
+    "DisplayName": "Tech Supplies Inc",
+    "CompanyName": "Tech Supplies Inc",
+    "Active": true
+  }
+]
+

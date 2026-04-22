@@ -28,6 +28,14 @@
     "enableDailyPriceCheck": true,
     "enableTokenRefresh": true,
     "enableEmailNotifications": false
+  },
+  "monitoring": {
+    "maxMonitoredItemsPerCompany": 20
+  },
+  "testing": {
+    "testMode": true,
+    "testCompanyId": 1,
+    "testUserEmail": "test@procuroapp.com"
   }
 }
 

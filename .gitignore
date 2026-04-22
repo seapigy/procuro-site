@@ -44,8 +44,8 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Prisma
-server/prisma/migrations/
+# Prisma (migrations are committed for Postgres; uncomment to ignore locally)
+# server/prisma/migrations/
 
 # Temporary files
 *.tmp
@@ -55,3 +55,8 @@ server/prisma/migrations/
 
 
 
+
+# Generated reports (local; default output of amazon-validation-report script)
+server/amazon-validation-focused-report.txt
+server/validation-report-output.txt
+qbo_embed/OUTPUT-SUMMARY.txt

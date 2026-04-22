@@ -1,99 +1,74 @@
 # ProcuroApp
 
-A QuickBooks-integrated price-monitoring SaaS platform that helps businesses track competitor pricing and optimize their strategies.
+A QuickBooks-integrated price-monitoring SaaS: import items, match retailers, check prices, and surface savings. Stack: **Node/Express/TypeScript** backend, **React/Vite** client, **Prisma** (PostgreSQL in production, SQLite optional locally).
 
-## Tech Stack
+## Quick start
 
-### Backend
-- **Server**: Node.js + Express + TypeScript
-- **Database**: PostgreSQL/SQLite (via Prisma ORM)
-- **Authentication**: QuickBooks OAuth integration
+1. **Prerequisites:** Node.js 18+, npm.
 
-### Frontend
-- **Client**: React + Vite
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
+2. **Install:**
 
-### Additional
-- **Retailer APIs**: Custom modules in `/providers`
-- **Scheduled Tasks**: Cron jobs in `/jobs`
+   ```bash
+   npm run install:all
+   ```
 
-## Getting Started
+3. **Environment:** Copy [.env.example](.env.example) to **`server/.env`** and fill in values (database, QuickBooks, optional Stripe/Bright Data). For the client in production, see [client/.env.example](client/.env.example) and [client/DEPLOYMENT.md](client/DEPLOYMENT.md).
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
-- PostgreSQL (or SQLite for development)
+4. **Database** (from `server/`):
 
-### Installation
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev
+   ```
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd ProcuroApp
-```
+   Switching SQLite ↔ Postgres / Supabase: [docs/DATABASE-SWITCH.md](docs/DATABASE-SWITCH.md).
 
-2. Install all dependencies:
-```bash
-npm run install:all
-```
+5. **Run** (two terminals from repo root):
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
+   ```bash
+   npm run dev:server
+   npm run dev:client
+   ```
 
-Edit `.env` with your actual credentials:
-- Database connection string
-- QuickBooks API credentials
-- Retailer API keys (Amazon, etc.)
+   - API: `http://localhost:5000` — `GET /health`
+   - UI: `http://localhost:5173`
 
-4. Set up the database:
-```bash
-cd server
-npx prisma migrate dev
-npx prisma generate
-```
+## Documentation
 
-5. Start development servers:
+| Doc | Purpose |
+|-----|---------|
+| [AGENTS.md](AGENTS.md) | Repo map, commands, env — optimized for Cursor / AI |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local dev, testing, troubleshooting |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Price discovery, workers, test-route behavior |
+| [server/README.md](server/README.md) | Backend, QuickBooks, Bright Data notes |
+| [docs/DATABASE-SWITCH.md](docs/DATABASE-SWITCH.md) | Database configuration |
+| [server/docs/tenancy.md](server/docs/tenancy.md) | Multi-tenant RLS and `withCompany` |
+| [client/DEPLOYMENT.md](client/DEPLOYMENT.md) | Frontend env and hosting |
 
-In separate terminals:
-```bash
-# Terminal 1: Backend server
-npm run dev:server
+**QuickBooks App Store submission materials:** [docs/APP-SUBMISSION/](docs/APP-SUBMISSION/) and [docs/APP-REVIEWER-FLOW/](docs/APP-REVIEWER-FLOW/).
 
-# Terminal 2: Frontend client
-npm run dev:client
-```
+## Scripts (root)
 
-## Available Scripts
+| Script | Description |
+|--------|-------------|
+| `npm run dev:server` | Backend dev server |
+| `npm run dev:client` | Frontend dev server |
+| `npm run build` | Build server and client |
+| `npm run start` | Start production server |
+| `npm run install:all` | Install all workspaces |
 
-- `npm run dev:server` - Start the backend development server
-- `npm run dev:client` - Start the frontend development server
-- `npm run build` - Build both server and client for production
-- `npm run start` - Start the production server
-- `npm run install:all` - Install dependencies for all workspaces
+**Windows (optional):** from repo root, [`start-backend.ps1`](start-backend.ps1) runs the API with `TEST_MODE` and a minimal `server/.env` if missing; [`stop-backend.ps1`](stop-backend.ps1) stops whatever is using port 5000. [`test-founder-demo.ps1`](test-founder-demo.ps1) smoke-tests local HTTP endpoints. Prisma helpers: `force-generate-prisma.ps1`, `complete-price-history-setup.ps1`, `run-pending-migrations.ps1`.
 
-## Project Structure
+## Layout
 
 ```
 ProcuroApp/
-├── server/          # Express + TypeScript backend
-├── client/          # React + Vite frontend
-├── providers/       # Retailer API integration modules
-├── jobs/            # Scheduled cron tasks
-└── db/              # Database schemas and migrations (Prisma)
+├── server/     # Express API, Prisma, providers, jobs
+├── client/     # React app
+├── providers/  # Legacy/shared retailer helpers (see server/src/providers for app code)
+└── jobs/       # Scheduled tasks
 ```
-
-## Environment Variables
-
-See `.env.example` for all required environment variables.
 
 ## License
 
 ISC
-
-
-
-
-

@@ -2,12 +2,17 @@
  * Retail Price Providers - Export all providers and aggregator
  */
 
-export * as amazon from './amazon';
-export * as walmart from './walmart';
-export * as target from './target';
-export * as homedepot from './homedepot';
-export * as lowes from './lowes';
-export * as staples from './staples';
+// Amazon - Standby mode (not registered, file preserved)
+// export * as amazon from './amazon';
+
+// Target - Disabled
+// export * as target from './target';
+// HomeDepot - Disabled
+// export * as homedepot from './homedepot';
+// Lowes - Disabled
+// export * as lowes from './lowes';
+// Staples - Disabled
+// export * as staples from './staples';
 export * as officedepot from './officedepot';
 
 export * from './aggregateProvider';

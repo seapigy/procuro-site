@@ -1,6 +1,10 @@
 /**
+ * Enable once Amazon credentials are added
+ * 
  * Amazon Provider (using Product Advertising API)
  * Requires: Amazon PA-API credentials
+ * 
+ * STATUS: Standby mode - File preserved but not registered/used
  */
 
 import { PriceResult, ProviderConfig } from './types';

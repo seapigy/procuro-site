@@ -7,9 +7,10 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  closeOnBackdropClick?: boolean; // Allow disabling backdrop close
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = 'md', closeOnBackdropClick = true }: ModalProps) {
   if (!isOpen) return null;
 
   const widthClasses = {
@@ -20,21 +21,23 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: Mod
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        onClick={closeOnBackdropClick ? onClose : undefined}
         aria-hidden="true"
+        style={{ zIndex: 9999 }}
       />
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="relative flex min-h-full items-center justify-center p-4" style={{ zIndex: 10000 }}>
         <div
           className={`relative w-full ${widthClasses[maxWidth]} bg-card rounded-xl shadow-lg transform transition-all`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-6 py-4">

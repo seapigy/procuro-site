@@ -328,7 +328,6 @@ If CORS becomes an issue, consider:
 ## Questions?
 
 See main documentation:
-- `/docs/PROVIDER-VERIFICATION-REPORT.md`
-- `/docs/LOCAL-DEV.md`
-- `/server/src/providers/DEPRECATED.md`
+- [AGENTS.md](../../../AGENTS.md) and [docs/DEVELOPMENT.md](../../../docs/DEVELOPMENT.md)
+- [server/src/providers/DEPRECATED.md](../../../server/src/providers/DEPRECATED.md)
 

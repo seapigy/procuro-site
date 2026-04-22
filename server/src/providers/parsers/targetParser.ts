@@ -73,65 +73,6 @@ export function parseTargetHtml(html: string): ParsedRetailerResult {
       image: null,
       stock: null
     };
-
-    // Extract product data - handle multiple possible structures
-    const item = product?.item || product;
-    
-    const title =
-      item?.product_description?.title ||
-      item?.title ||
-      item?.item?.product_description?.title ||
-      product?.product_description?.title ||
-      product?.title ||
-      null;
-
-    const priceData = 
-      item?.price?.current_retail ||
-      item?.price?.formatted_current_price ||
-      item?.price ||
-      product?.price?.current_retail ||
-      product?.price?.formatted_current_price ||
-      product?.price ||
-      null;
-
-    const price = priceData ? parseFloat(String(priceData).replace(/[$,]/g, '')) : null;
-
-    const tcin = 
-      item?.tcin ||
-      item?.item?.tcin ||
-      product?.tcin ||
-      null;
-
-    const url = tcin
-      ? `https://www.target.com/p/${tcin}`
-      : null;
-
-    const image =
-      item?.enrichment?.images?.primary_image_url ||
-      item?.images?.primary_image_url ||
-      item?.image?.primary_image_url ||
-      product?.enrichment?.images?.primary_image_url ||
-      product?.images?.primary_image_url ||
-      null;
-
-    const stock =
-      item?.fulfillment?.is_out_of_stock === false ||
-      item?.availability_status === "IN_STOCK" ||
-      item?.availability?.online?.availability === "IN_STOCK" ||
-      product?.fulfillment?.is_out_of_stock === false ||
-      product?.availability_status === "IN_STOCK" ||
-      false;
-
-    console.log('Target: Parsed product:', { title, price, tcin, stock, hasImage: !!image });
-
-    return {
-      retailer: "Target",
-      title,
-      price,
-      url,
-      image,
-      stock
-    };
   } catch (err) {
     console.error('Target parser error:', err);
     console.error('Target parser error stack:', err instanceof Error ? err.stack : 'No stack');

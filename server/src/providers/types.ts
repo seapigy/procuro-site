@@ -9,6 +9,8 @@ export interface PriceResult {
   retailer: string;
   title: string | null;
   image: string | null;
+  /** Optional raw product data for identity persistence (e.g. Amazon, Home Depot) */
+  rawJson?: Record<string, unknown>;
 }
 
 export interface ProviderConfig {

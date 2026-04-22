@@ -1,15 +1,12 @@
-import { WalmartProvider } from "./walmart";
 import { TargetProvider } from "./target";
 
 // Later we add AmazonProvider when unlocked
 // import { AmazonProvider } from "./amazon";
 
-export { WalmartProvider } from "./walmart";
 export { TargetProvider } from "./target";
 
 export async function getBestPriceForItem(item: { name: string }) {
   const results = await Promise.all([
-    WalmartProvider.getPriceByName(item.name),
     TargetProvider.getPriceByName(item.name),
     // AmazonProvider.getPriceByName(item.name)  (after PA-API unlock)
   ]);

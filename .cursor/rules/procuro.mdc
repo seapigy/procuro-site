@@ -1,0 +1,6 @@
+---
+description: ProcuroApp — start here for repo context
+alwaysApply: true
+---
+
+Before large or cross-cutting changes, read **`AGENTS.md`** at the repository root for commands, environment files, entry points, and links to canonical docs (`docs/DEVELOPMENT.md`, `docs/DATABASE-SWITCH.md`, `server/docs/tenancy.md`). Prefer updating those docs over duplicating long setup in chat.

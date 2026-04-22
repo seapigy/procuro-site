@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #2D8CFF;
+  --color-accent: #51C39C;
+  --color-bg-light: #F8FAFC;
+  --color-bg-dark: #0E1117;
+  --radius-large: 14px;
+}
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+  
+  body {
+    @apply bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)];
+  }
+}
+
+@layer components {
+  .procura-card {
+    @apply rounded-xl shadow-md border bg-card p-6;
+  }
+  
+  .procura-button {
+    @apply rounded-xl shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .procura-badge {
+    @apply rounded-lg px-3 py-1 text-sm font-medium;
+  }
+}
+
 @layer base {
   :root {
     /* QuickBooks-inspired color palette */
@@ -66,6 +98,16 @@
   body {
     @apply bg-background text-foreground;
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  html {
+    margin: 0;
+    padding: 0;
+  }
+  #root {
+    margin: 0;
+    padding: 0;
   }
 }
 

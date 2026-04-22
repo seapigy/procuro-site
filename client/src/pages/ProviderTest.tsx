@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Package, TestTube, Database, Play, AlertCircle, Check, Loader2, Info, Bug } from 'lucide-react';
+import { Package, TestTube, Database, Play, AlertCircle, Check, Loader2, Bug } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import * as walmart from '../providers_browser/walmart.browser';
-import * as target from '../providers_browser/target.browser';
-import * as homedepot from '../providers_browser/homedepot.browser';
-import * as lowes from '../providers_browser/lowes.browser';
-import * as staples from '../providers_browser/staples.browser';
-import * as officedepot from '../providers_browser/officedepot.browser';
+import { Tooltip } from '../components/ui/tooltip';
+// Providers are imported via backend API calls, not directly
+// import * as officedepot from '../providers_browser/officedepot.browser';
 import { BrowserPriceResult } from '../providers_browser/types';
+import { apiUrl, apiFetch } from '../utils/api';
 
 interface TestItem {
   id: number;
   name: string;
-  lastPaidPrice: number;
-  sku?: string;
+  baselinePrice: number; // Stable price for savings calculations
+  lastPaidPrice: number; // Most recent purchase price (for display)
   vendorName?: string;
   category?: string;
 }
@@ -39,7 +37,6 @@ interface DebugInfo {
 export function ProviderTest() {
   // Test Item Creation
   const [itemName, setItemName] = useState('');
-  const [itemSku, setItemSku] = useState('');
   const [itemVendor, setItemVendor] = useState('');
   const [itemPrice, setItemPrice] = useState('');
   const [itemCategory, setItemCategory] = useState('');
@@ -71,7 +68,7 @@ export function ProviderTest() {
   // Fetch test items on mount
   const fetchTestItems = async () => {
     try {
-      const res = await fetch('/api/items');
+      const res = await apiFetch(apiUrl('/api/items'));
       if (res.ok) {
         const data = await res.json();
         setTestItems(data.items || []);
@@ -91,8 +88,8 @@ export function ProviderTest() {
    * Note: Some providers (like Target) use API calls and don't return HTML
    */
   const validateRetailerHTML = (html: string | undefined | null, retailerName: string): { valid: boolean; error?: string } => {
-    // API-based providers (like Target RedSky API) don't return HTML
-    const apiBasedProviders = ['target'];
+    // API-based providers (like Target RedSky API, Rakuten) don't return HTML
+    const apiBasedProviders = ['target', 'rakuten'];
     if (apiBasedProviders.includes(retailerName.toLowerCase())) {
       // For API-based providers, HTML validation is not applicable
       return { valid: true };
@@ -124,11 +121,14 @@ export function ProviderTest() {
 
     // Check for retailer-specific signatures
     const signatures: Record<string, string[]> = {
-      Walmart: ['walmart.com', 'search', 'product'],
-      Target: ['target.com', 'data-'],
-      'Home Depot': ['homedepot.com', 'product'],
-      Lowes: ['lowes.com', 'pdp'],
-      Staples: ['staples.com', 'product'],
+      // Target - Disabled
+      // Target: ['target.com', 'data-'],
+      // HomeDepot - Disabled
+      // 'Home Depot': ['homedepot.com', 'product'],
+      // Lowes - Disabled
+      // Lowes: ['lowes.com', 'pdp'],
+      // Staples - Disabled
+      // Staples: ['staples.com', 'product'],
       'Office Depot': ['officedepot.com', 'product'],
     };
 
@@ -151,18 +151,20 @@ export function ProviderTest() {
    */
   const fetchFromBackendProvider = async (retailer: string, keyword: string): Promise<{
     success: boolean;
-    html: string;
-    parsed: any;
-    url: string;
+    html?: string;
+    parsed?: any;
+    url?: string;
     error?: string;
+    items?: any[];
+    retailer?: string;
   }> => {
     try {
       const endpoint = `/api/provider/${retailer.toLowerCase().replace(/\s+/g, '')}?keyword=${encodeURIComponent(keyword)}`;
       
       console.log(`🔌 Calling backend provider: ${endpoint}`);
-      console.log(`🔵 Full URL would be: ${window.location.origin}${endpoint}`);
+      console.log(`🔵 Full URL would be: ${apiUrl(endpoint)}`);
       
-      const res = await fetch(endpoint);
+      const res = await apiFetch(apiUrl(endpoint));
       console.log(`🔵 Response status: ${res.status} ${res.statusText}`);
       
       if (!res.ok) {
@@ -250,8 +252,35 @@ export function ProviderTest() {
         return;
       }
 
-      // Set parsed result
-      if (backendResponse.parsed) {
+      // Handle providers with items array format (Rakuten, Staples)
+      const itemsArrayProviders = ['rakuten', 'staples'];
+      if (itemsArrayProviders.includes(providerName.toLowerCase()) && backendResponse.items) {
+        if (backendResponse.items.length > 0) {
+          const firstItem = backendResponse.items[0];
+          setResult({
+            retailer: firstItem.retailer || providerName,
+            price: firstItem.price,
+            title: firstItem.title,
+            url: firstItem.url,
+            image: firstItem.image,
+            stock: null,
+          });
+          if (firstItem.price) {
+            console.log(`✅ ${providerName}: Found price $${firstItem.price.toFixed(2)}`);
+          }
+        } else {
+          setError(`⚠️ ${providerName} returned no items for this keyword.`);
+          setResult({
+            retailer: providerName,
+            price: null,
+            url: null,
+            title: null,
+            stock: null,
+            image: null,
+          });
+        }
+      } else if (backendResponse.parsed) {
+        // Standard parsed format for HTML-based providers
         setResult(backendResponse.parsed);
         
         if (!backendResponse.parsed.price) {
@@ -306,12 +335,11 @@ export function ProviderTest() {
 
     setCreatingItem(true);
     try {
-      const res = await fetch('/api/items', {
+      const res = await apiFetch(apiUrl('/api/items'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: itemName,
-          sku: itemSku || undefined,
           vendorName: itemVendor || undefined,
           category: itemCategory || undefined,
           lastPaidPrice: parsedPrice,
@@ -325,7 +353,6 @@ export function ProviderTest() {
         await fetchTestItems();
         // Clear form
         setItemName('');
-        setItemSku('');
         setItemVendor('');
         setItemPrice('');
         setItemCategory('');
@@ -363,7 +390,7 @@ export function ProviderTest() {
 
     try {
       // Save price to database
-      const res = await fetch('/api/store-price', {
+      const res = await apiFetch(apiUrl('/api/store-price'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -386,7 +413,7 @@ export function ProviderTest() {
       console.log('✅ Price saved:', data);
 
       // Generate alerts
-      const alertRes = await fetch('/api/alerts/generate', {
+      const alertRes = await apiFetch(apiUrl('/api/alerts/generate'), {
         method: 'POST',
       });
 
@@ -474,19 +501,12 @@ export function ProviderTest() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <input
                 type="text"
                 placeholder="Item Name *"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
-                className="px-3 py-2 border rounded-md"
-              />
-              <input
-                type="text"
-                placeholder="SKU"
-                value={itemSku}
-                onChange={(e) => setItemSku(e.target.value)}
                 className="px-3 py-2 border rounded-md"
               />
               <input
@@ -536,7 +556,6 @@ export function ProviderTest() {
                       <tr>
                         <th className="px-4 py-2 text-left">ID</th>
                         <th className="px-4 py-2 text-left">Name</th>
-                        <th className="px-4 py-2 text-left">SKU</th>
                         <th className="px-4 py-2 text-left">Last Paid</th>
                         <th className="px-4 py-2 text-left">Action</th>
                       </tr>
@@ -549,7 +568,6 @@ export function ProviderTest() {
                         >
                           <td className="px-4 py-2">{item.id}</td>
                           <td className="px-4 py-2">{item.name}</td>
-                          <td className="px-4 py-2">{item.sku || '-'}</td>
                           <td className="px-4 py-2">${item.lastPaidPrice.toFixed(2)}</td>
                           <td className="px-4 py-2">
                             <Button
@@ -595,61 +613,49 @@ export function ProviderTest() {
 
               {/* Provider Buttons */}
               <div className="space-y-2 mb-6">
-                <Button
-                  onClick={() => testProvider('Walmart')}
-                  disabled={testing}
-                  className="w-full"
-                  variant={currentProvider === 'Walmart' ? 'default' : 'outline'}
-                >
-                  {currentProvider === 'Walmart' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Testing Walmart...
-                    </>
-                  ) : (
-                    '🛒 Test Walmart (Backend Proxy)'
-                  )}
-                </Button>
-
-                <Button
+                {/* Target - Disabled */}
+                {/* <Button
                   onClick={() => testProvider('Target')}
                   disabled={true}
                   className="w-full opacity-50 cursor-not-allowed"
                   variant="outline"
-                  title="Target provider temporarily disabled - loads data dynamically"
+                  title="Target provider disabled"
                 >
                   🎯 Test Target (Disabled)
-                </Button>
+                </Button> */}
 
-                <Button
+                {/* HomeDepot - Disabled */}
+                {/* <Button
                   onClick={() => testProvider('Home Depot')}
                   disabled={true}
                   className="w-full opacity-50 cursor-not-allowed"
                   variant="outline"
-                  title="Home Depot provider temporarily disabled - bot detection blocking requests"
+                  title="Home Depot provider disabled"
                 >
                   🏠 Test Home Depot (Disabled)
-                </Button>
+                </Button> */}
 
-                <Button
+                {/* Lowes - Disabled */}
+                {/* <Button
                   onClick={() => testProvider('Lowes')}
                   disabled={true}
                   className="w-full opacity-50 cursor-not-allowed"
                   variant="outline"
-                  title="Lowes provider temporarily disabled - bot detection blocking requests (403 Forbidden)"
+                  title="Lowes provider disabled"
                 >
                   🔨 Test Lowes (Disabled)
-                </Button>
+                </Button> */}
 
-                <Button
+                {/* Staples - Disabled */}
+                {/* <Button
                   onClick={() => testProvider('Staples')}
                   disabled={true}
                   className="w-full opacity-50 cursor-not-allowed"
                   variant="outline"
-                  title="Staples provider temporarily disabled - search URL pattern changed (404 errors)"
+                  title="Staples provider disabled"
                 >
                   📎 Test Staples (Disabled)
-                </Button>
+                </Button> */}
 
                 <Button
                   onClick={() => testProvider('Office Depot')}
@@ -666,7 +672,60 @@ export function ProviderTest() {
                     '🖊️ Test Office Depot (Backend Proxy)'
                   )}
                 </Button>
+
+                <div className="w-full">
+                  <Tooltip
+                    content="Rakuten (Connected, no products yet): API is reachable and authenticated, but currently returns 0 items. This is usually due to advertiser approval or account configuration on Rakuten's side, not a code issue."
+                    side="top"
+                  >
+                    <Button
+                      onClick={() => testProvider('rakuten')}
+                      disabled={testing}
+                      className="w-full"
+                      variant={currentProvider === 'rakuten' ? 'default' : 'outline'}
+                    >
+                      {currentProvider === 'rakuten' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Testing Rakuten...
+                        </>
+                      ) : (
+                        '🎁 Test Rakuten (Standby Mode)'
+                      )}
+                    </Button>
+                  </Tooltip>
+                  <div className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Connected, no products yet</span>
+                  </div>
+                </div>
+
+                <Tooltip
+                  content="Staples provider is OFFICIALLY PARKED. Cannot be used without official API access and agreement with Staples. All scraping attempts are blocked."
+                  side="top"
+                >
+                  <Button
+                    onClick={() => testProvider('staples')}
+                    disabled={testing}
+                    className="w-full"
+                    variant={currentProvider === 'staples' ? 'default' : 'outline'}
+                  >
+                    {currentProvider === 'staples' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Testing Staples...
+                      </>
+                    ) : (
+                      '🛒 Test Staples (PARKED - Requires API Access)'
+                    )}
+                  </Button>
+                </Tooltip>
+                <div className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Officially Parked - Not Functional</span>
+                </div>
               </div>
+
 
               {/* Save to Database */}
               {selectedItem && (

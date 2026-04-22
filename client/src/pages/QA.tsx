@@ -4,14 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import * as walmart from '../providers_browser/walmart.browser';
-import * as target from '../providers_browser/target.browser';
 import * as homedepot from '../providers_browser/homedepot.browser';
-import * as lowes from '../providers_browser/lowes.browser';
-import * as staples from '../providers_browser/staples.browser';
 import * as officedepot from '../providers_browser/officedepot.browser';
 import { BrowserPriceResult } from '../providers_browser/types';
 import { checkAllRetailers } from '../providers_browser';
+import { apiUrl, apiFetch } from '../utils/api';
 
 interface TestResult {
   name: string;
@@ -57,6 +54,11 @@ export function QA() {
     { id: 10, label: 'All errors handled gracefully', checked: false },
     { id: 11, label: 'No console errors', checked: false },
     { id: 12, label: 'No network failures', checked: false },
+    { id: 13, label: 'Brand nudge: Dashboard add — empty brand opens modal (Save w/o brand disabled)', checked: false },
+    { id: 14, label: 'Brand nudge: Dashboard — match quality + reinforcement after brand', checked: false },
+    { id: 15, label: 'Brand nudge: Dashboard edit — same as add (quality, modal, low-quality confirm)', checked: false },
+    { id: 16, label: 'Brand nudge: /items page — add/edit parity with dashboard modals', checked: false },
+    { id: 17, label: 'Brand nudge: low-quality save shows Confirm save / Save anyway when brand present', checked: false },
   ]);
 
   // Performance Metrics State
@@ -75,13 +77,8 @@ export function QA() {
   const initializeTests = () => {
     const testSuite: TestResult[] = [
       // Provider Tests
-      { name: 'Walmart Provider - Basic Search', status: 'pending' },
-      { name: 'Walmart Provider - Price Extraction', status: 'pending' },
-      { name: 'Target Provider - Basic Search', status: 'pending' },
-      { name: 'Target Provider - Price Extraction', status: 'pending' },
       { name: 'Home Depot Provider - Basic Search', status: 'pending' },
-      { name: "Lowe's Provider - Basic Search", status: 'pending' },
-      { name: 'Staples Provider - Basic Search', status: 'pending' },
+      { name: 'Home Depot Provider - Price Extraction', status: 'pending' },
       { name: 'Office Depot Provider - Basic Search', status: 'pending' },
       { name: 'Provider Parallel Aggregation', status: 'pending' },
       { name: 'Provider Error Handling', status: 'pending' },
@@ -192,44 +189,21 @@ export function QA() {
     
     if (testName.includes('Provider')) {
       // Provider tests verify code structure, not actual fetching (CORS will block)
-      if (testName.includes('Walmart') && testName.includes('Basic')) {
+      if (testName.includes('Home Depot') && testName.includes('Basic')) {
         // Just verify the provider function exists
-        if (typeof walmart.getPriceByKeyword !== 'function') {
-          throw new Error('Walmart provider not found');
+        if (typeof homedepot.getPriceByKeyword !== 'function') {
+          throw new Error('Home Depot provider not found');
         }
-      } else if (testName.includes('Walmart') && testName.includes('Price Extraction')) {
+      } else if (testName.includes('Home Depot') && testName.includes('Price Extraction')) {
         // Verify provider returns correct structure (even with CORS error)
         try {
-          const result = await walmart.getPriceByKeyword('test product');
+          const result = await homedepot.getPriceByKeyword('test product');
           if (!result.retailer) throw new Error('No retailer in result');
         } catch (error: any) {
           // CORS is expected - check if error was handled gracefully
           if (!error.message.includes('fetch')) {
             throw error; // Only throw if it's not a CORS/fetch error
           }
-        }
-      } else if (testName.includes('Target') && testName.includes('Basic')) {
-        if (typeof target.getPriceByKeyword !== 'function') {
-          throw new Error('Target provider not found');
-        }
-      } else if (testName.includes('Target') && testName.includes('Price Extraction')) {
-        // Same as Walmart - CORS expected
-        try {
-          await target.getPriceByKeyword('test product');
-        } catch (error: any) {
-          if (!error.message.includes('fetch')) throw error;
-        }
-      } else if (testName.includes('Home Depot')) {
-        if (typeof homedepot.getPriceByKeyword !== 'function') {
-          throw new Error('Home Depot provider not found');
-        }
-      } else if (testName.includes('Lowe')) {
-        if (typeof lowes.getPriceByKeyword !== 'function') {
-          throw new Error('Lowes provider not found');
-        }
-      } else if (testName.includes('Staples')) {
-        if (typeof staples.getPriceByKeyword !== 'function') {
-          throw new Error('Staples provider not found');
         }
       } else if (testName.includes('Office Depot')) {
         if (typeof officedepot.getPriceByKeyword !== 'function') {
@@ -252,14 +226,14 @@ export function QA() {
       } else if (testName.includes('Error Handling')) {
         // Test that providers handle errors
         try {
-          await walmart.getPriceByKeyword('');
+          await homedepot.getPriceByKeyword('');
         } catch {
           // Expected to fail or handle gracefully
         }
       } else if (testName.includes('Null Price')) {
         // Verify null prices are handled
-        const result = await walmart.getPriceByKeyword('test').catch(() => ({
-          retailer: 'Walmart',
+        const result = await homedepot.getPriceByKeyword('test').catch(() => ({
+          retailer: 'Home Depot',
           price: null,
           url: null,
           title: null,
@@ -269,8 +243,8 @@ export function QA() {
         if (result.price === undefined) throw new Error('Price field missing');
       } else if (testName.includes('Response Validation')) {
         // Verify result structure
-        const result = await walmart.getPriceByKeyword('test').catch(() => ({
-          retailer: 'Walmart',
+        const result = await homedepot.getPriceByKeyword('test').catch(() => ({
+          retailer: 'Home Depot',
           price: null,
           url: null,
           title: null,
@@ -282,7 +256,7 @@ export function QA() {
     } else if (testName.includes('Alert')) {
       // Test alert endpoints (only if backend is running)
       try {
-        const res = await fetch('/api/alerts');
+        const res = await apiFetch(apiUrl('/api/alerts'));
         if (!res.ok && res.status !== 404) throw new Error('Alert API error');
       } catch (error: any) {
         // If backend not running, skip test
@@ -293,7 +267,7 @@ export function QA() {
     } else if (testName.includes('Savings')) {
       // Test savings calculation
       try {
-        const res = await fetch('/api/savings-summary');
+        const res = await apiFetch(apiUrl('/api/savings-summary'));
         if (!res.ok && res.status !== 404) throw new Error('Savings API error');
       } catch (error: any) {
         if (error.message.includes('Failed to fetch')) {
@@ -303,7 +277,7 @@ export function QA() {
     } else if (testName.includes('Item') || testName.includes('Insert')) {
       // Test items endpoint
       try {
-        const res = await fetch('/api/items');
+        const res = await apiFetch(apiUrl('/api/items'));
         if (!res.ok && res.status !== 404) throw new Error('Items API error');
       } catch (error: any) {
         if (error.message.includes('Failed to fetch')) {
@@ -313,7 +287,7 @@ export function QA() {
     } else if (testName.includes('Query')) {
       // Test database queries
       try {
-        const res = await fetch('/api/items');
+        const res = await apiFetch(apiUrl('/api/items'));
         if (!res.ok && res.status !== 404) throw new Error('Query failed');
       } catch (error: any) {
         if (error.message.includes('Failed to fetch')) {
@@ -386,8 +360,8 @@ export function QA() {
     setLoadingDb(true);
     try {
       const [itemsRes, alertsRes] = await Promise.all([
-        fetch('/api/items'),
-        fetch('/api/alerts'),
+        apiFetch(apiUrl('/api/items')),
+        apiFetch(apiUrl('/api/alerts')),
       ]);
 
       const data: { [key: string]: DBRecord[] } = {};
@@ -590,39 +564,11 @@ export function QA() {
 
                 <div className="space-y-2">
                   <Button
-                    onClick={() => testProvider('Walmart', walmart.getPriceByKeyword)}
-                    disabled={testingProvider}
-                    className="w-full bg-[#0077C5]"
-                  >
-                    Test Walmart
-                  </Button>
-                  <Button
-                    onClick={() => testProvider('Target', target.getPriceByKeyword)}
-                    disabled={testingProvider}
-                    className="w-full bg-[#0077C5]"
-                  >
-                    Test Target
-                  </Button>
-                  <Button
                     onClick={() => testProvider('Home Depot', homedepot.getPriceByKeyword)}
                     disabled={testingProvider}
                     className="w-full bg-[#0077C5]"
                   >
                     Test Home Depot
-                  </Button>
-                  <Button
-                    onClick={() => testProvider("Lowe's", lowes.getPriceByKeyword)}
-                    disabled={testingProvider}
-                    className="w-full bg-[#0077C5]"
-                  >
-                    Test Lowe's
-                  </Button>
-                  <Button
-                    onClick={() => testProvider('Staples', staples.getPriceByKeyword)}
-                    disabled={testingProvider}
-                    className="w-full bg-[#0077C5]"
-                  >
-                    Test Staples
                   </Button>
                   <Button
                     onClick={() => testProvider('Office Depot', officedepot.getPriceByKeyword)}
@@ -887,11 +833,7 @@ export function QA() {
               <CardContent>
                 <div className="space-y-3">
                   {[
-                    { name: 'Walmart', selector: 'window.__WML_REDUX_INITIAL_STATE__', status: 'active' },
-                    { name: 'Target', selector: '<script id="__NEXT_DATA__">', status: 'active' },
-                    { name: 'Home Depot', selector: '<script id="__NEXT_DATA__">', status: 'active' },
-                    { name: "Lowe's", selector: 'window.__PRELOADED_STATE__', status: 'active' },
-                    { name: 'Staples', selector: '<script id="__NEXT_DATA__">', status: 'active' },
+                    { name: 'Home Depot', selector: 'window.__app__', status: 'active' },
                     { name: 'Office Depot', selector: '<script id="__NEXT_DATA__">', status: 'active' },
                   ].map((provider) => (
                     <div key={provider.name} className="p-3 border rounded-lg">

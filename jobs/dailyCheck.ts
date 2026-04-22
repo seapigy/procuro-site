@@ -8,14 +8,19 @@ export async function runDailyPriceCheck() {
     const best = await getBestPriceForItem(item);
     if (!best || best.price === null) continue;
 
-    // Determine if it's cheaper than last paid
-    const lastPaid = item.lastPaidPrice;
+    // Use baselinePrice for savings calculations (with fallback to lastPaidPrice for safety)
+    const baseline = (item.baselinePrice && item.baselinePrice > 0) ? item.baselinePrice : item.lastPaidPrice;
+    
+    // Skip if baseline is invalid
+    if (baseline <= 0) {
+      continue;
+    }
 
-    if (best.price < lastPaid) {
+    if (best.price < baseline) {
       // Calculate savings
       const quantity = item.quantityPerOrder;
       const interval = item.reorderIntervalDays;
-      const savingsPerUnit = item.lastPaidPrice - best.price;
+      const savingsPerUnit = baseline - best.price;
       const savingsPerOrder = savingsPerUnit * quantity;
       const estimatedMonthlySavings = (30 / interval) * savingsPerOrder;
 
@@ -25,7 +30,7 @@ export async function runDailyPriceCheck() {
           userId: item.userId,
           retailer: best.retailer,
           newPrice: best.price,
-          oldPrice: lastPaid,
+          oldPrice: baseline,
           url: best.url,
           savingsPerOrder: savingsPerOrder,
           estimatedMonthlySavings: estimatedMonthlySavings,

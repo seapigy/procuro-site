@@ -2,11 +2,14 @@
  * Tests for retail price providers
  */
 
-import * as walmart from '../src/providers/walmart';
-import * as target from '../src/providers/target';
-import * as homedepot from '../src/providers/homedepot';
-import * as lowes from '../src/providers/lowes';
-import * as staples from '../src/providers/staples';
+// Target - Disabled
+// import * as target from '../src/providers/target';
+// HomeDepot - Disabled
+// import * as homedepot from '../src/providers/homedepot';
+// Lowes - Disabled
+// import * as lowes from '../src/providers/lowes';
+// Staples - Disabled
+// import * as staples from '../src/providers/staples';
 import * as officedepot from '../src/providers/officedepot';
 import { aggregateProviders } from '../src/providers/aggregateProvider';
 import { PriceResult } from '../src/providers/types';
@@ -20,11 +23,14 @@ describe('Retail Price Providers', () => {
 
   describe('Provider Structure', () => {
     const providers = [
-      { name: 'Walmart', module: walmart },
-      { name: 'Target', module: target },
-      { name: 'Home Depot', module: homedepot },
-      { name: "Lowe's", module: lowes },
-      { name: 'Staples', module: staples },
+      // Target - Disabled
+      // { name: 'Target', module: target },
+      // HomeDepot - Disabled
+      // { name: 'Home Depot', module: homedepot },
+      // Lowes - Disabled
+      // { name: "Lowe's", module: lowes },
+      // Staples - Disabled
+      // { name: 'Staples', module: staples },
       { name: 'Office Depot', module: officedepot },
     ];
 
@@ -45,11 +51,14 @@ describe('Retail Price Providers', () => {
 
   describe('Provider Response Format', () => {
     const providers = [
-      { name: 'Walmart', module: walmart },
-      { name: 'Target', module: target },
-      { name: 'Home Depot', module: homedepot },
-      { name: "Lowe's", module: lowes },
-      { name: 'Staples', module: staples },
+      // Target - Disabled
+      // { name: 'Target', module: target },
+      // HomeDepot - Disabled
+      // { name: 'Home Depot', module: homedepot },
+      // Lowes - Disabled
+      // { name: "Lowe's", module: lowes },
+      // Staples - Disabled
+      // { name: 'Staples', module: staples },
       { name: 'Office Depot', module: officedepot },
     ];
 
@@ -160,28 +169,30 @@ describe('Retail Price Providers', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle malformed HTML gracefully (Walmart)', async () => {
-      const result = await walmart.getPriceByKeyword('test', { timeout: 3000, maxRetries: 1 });
+    it('should handle malformed HTML gracefully (Office Depot)', async () => {
+      const result = await officedepot.getPriceByKeyword('test', { timeout: 3000, maxRetries: 1 });
       expect(result).toBeDefined();
-      expect(result.retailer).toBe('Walmart');
+      expect(result.retailer).toBe('Office Depot');
     });
 
-    it('should handle network timeouts (Target)', async () => {
-      const result = await target.getPriceByKeyword('test', { timeout: 100, maxRetries: 0 });
-      expect(result).toBeDefined();
-      expect(result.retailer).toBe('Target');
-    });
+    // Target - Disabled
+    // it('should handle network timeouts (Target)', async () => {
+    //   const result = await target.getPriceByKeyword('test', { timeout: 100, maxRetries: 0 });
+    //   expect(result).toBeDefined();
+    //   expect(result.retailer).toBe('Target');
+    // });
 
-    it('should handle invalid SKUs (Staples)', async () => {
-      const result = await staples.getPriceBySKU('invalid-sku', { timeout: 3000, maxRetries: 1 });
-      expect(result).toBeDefined();
-      expect(result.retailer).toBe('Staples');
-    });
+    // Staples - Disabled
+    // it('should handle invalid SKUs (Staples)', async () => {
+    //   const result = await staples.getPriceBySKU('invalid-sku', { timeout: 3000, maxRetries: 1 });
+    //   expect(result).toBeDefined();
+    //   expect(result.retailer).toBe('Staples');
+    // });
   });
 
   describe('Data Validation', () => {
-    it('should return valid price when found (Walmart)', async () => {
-      const result = await walmart.getPriceByKeyword('bic pens', { timeout: 10000 });
+    it('should return valid price when found (Office Depot)', async () => {
+      const result = await officedepot.getPriceByKeyword('bic pens', { timeout: 10000 });
 
       if (result.price !== null) {
         expect(typeof result.price).toBe('number');
@@ -190,23 +201,25 @@ describe('Retail Price Providers', () => {
       }
     });
 
-    it('should return valid URL when found (Target)', async () => {
-      const result = await target.getPriceByKeyword('notebook', { timeout: 10000 });
+    // Target - Disabled
+    // it('should return valid URL when found (Target)', async () => {
+    //   const result = await target.getPriceByKeyword('notebook', { timeout: 10000 });
 
-      if (result.url !== null) {
-        expect(typeof result.url).toBe('string');
-        expect(result.url).toMatch(/^https?:\/\//); // Valid URL
-        expect(result.url).toContain('target.com');
-      }
-    });
+    //   if (result.url !== null) {
+    //     expect(typeof result.url).toBe('string');
+    //     expect(result.url).toMatch(/^https?:\/\//); // Valid URL
+    //     expect(result.url).toContain('target.com');
+    //   }
+    // });
 
-    it('should return boolean stock status (Home Depot)', async () => {
-      const result = await homedepot.getPriceByKeyword('hammer', { timeout: 10000 });
+    // HomeDepot - Disabled
+    // it('should return boolean stock status (Home Depot)', async () => {
+    //   const result = await homedepot.getPriceByKeyword('hammer', { timeout: 10000 });
 
-      if (result.stock !== null) {
-        expect(typeof result.stock).toBe('boolean');
-      }
-    });
+    //   if (result.stock !== null) {
+    //     expect(typeof result.stock).toBe('boolean');
+    //   }
+    // });
   });
 
   describe('Performance', () => {
@@ -215,7 +228,7 @@ describe('Retail Price Providers', () => {
       const startTime = Date.now();
 
       await Promise.race([
-        staples.getPriceByKeyword('paper', { timeout }),
+        officedepot.getPriceByKeyword('paper', { timeout }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Timeout')), timeout + 1000)
         ),
@@ -230,14 +243,14 @@ describe('Retail Price Providers', () => {
 
       const results = await Promise.all(
         keywords.map(keyword =>
-          walmart.getPriceByKeyword(keyword, { timeout: 5000 })
+          officedepot.getPriceByKeyword(keyword, { timeout: 5000 })
         )
       );
 
       expect(results).toHaveLength(keywords.length);
       results.forEach(result => {
         expect(result).toBeDefined();
-        expect(result.retailer).toBe('Walmart');
+        expect(result.retailer).toBe('Office Depot');
       });
     });
   });
