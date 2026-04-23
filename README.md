@@ -44,6 +44,7 @@ A QuickBooks-integrated price-monitoring SaaS: import items, match retailers, ch
 | [docs/DATABASE-SWITCH.md](docs/DATABASE-SWITCH.md) | Database configuration |
 | [server/docs/tenancy.md](server/docs/tenancy.md) | Multi-tenant RLS and `withCompany` |
 | [client/DEPLOYMENT.md](client/DEPLOYMENT.md) | Frontend env and hosting |
+| [docs/DEPLOY-GODADDY-RENDER.md](docs/DEPLOY-GODADDY-RENDER.md) | One-domain deployment using GoDaddy + Render |
 
 **QuickBooks App Store submission materials:** [docs/APP-SUBMISSION/](docs/APP-SUBMISSION/) and [docs/APP-REVIEWER-FLOW/](docs/APP-REVIEWER-FLOW/).
 

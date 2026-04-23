@@ -2,6 +2,7 @@ import './loadEnv';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import apiRoutes from './routes';
@@ -37,6 +38,9 @@ validateRequiredEnvForRuntime();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const clientDistDir = path.join(__dirname, '../../client/dist');
+const clientDistIndex = path.join(clientDistDir, 'index.html');
+const hasClientDist = fs.existsSync(clientDistIndex);
 
 // CORS configuration - Allow multiple origins for dev
 const allowedOrigins = [
@@ -185,6 +189,22 @@ app.get('/', (req, res) => {
     if (err) console.error('Landing sendFile error:', err);
   });
 });
+
+// Serve built SPA assets/routes for same-domain app entry (when client/dist exists).
+if (hasClientDist) {
+  app.use(
+    '/assets',
+    express.static(path.join(clientDistDir, 'assets'), {
+      maxAge: '1y',
+      immutable: true,
+    })
+  );
+
+  const spaEntryRoutes = ['/activate', '/qb-success', '/dashboard', '/items', '/standalone'];
+  app.get(spaEntryRoutes, (_req, res) => {
+    res.sendFile(clientDistIndex);
+  });
+}
 
 // Serve invite page
 app.get('/invite/:token', (req, res) => {
