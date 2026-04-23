@@ -37,9 +37,13 @@ export async function companyContext(req: Request, res: Response, next: NextFunc
       }
     }
 
-    const emailToUse = (TEST_MODE && req.headers['x-test-user-email'])
-      ? String(req.headers['x-test-user-email']).trim()
-      : TEST_USER_EMAIL;
+    const emailToUse = TEST_MODE
+      ? (
+          req.headers['x-test-user-email']
+            ? String(req.headers['x-test-user-email']).trim()
+            : TEST_USER_EMAIL
+        )
+      : '';
     if (!emailToUse) {
       req.companyId = null;
       return next();
