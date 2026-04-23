@@ -32,25 +32,6 @@ import { startDailyPriceCheckCron } from './workers/dailyPriceCheck';
 import { startTokenRefreshCron } from './workers/tokenRefresh';
 import { getSchedulerRole, shouldStartCronSchedulers, validateRequiredEnvForRuntime } from './config/runtime';
 
-const DEBUG_ENDPOINT = 'http://127.0.0.1:7545/ingest/f4bfa72e-90fa-47b6-884e-f6553cda177d';
-function emitDebugLog(runId: string, hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9538fe' },
-    body: JSON.stringify({
-      sessionId: '9538fe',
-      runId,
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-}
-
 // Fail startup if Bright Data is enabled but required env vars are missing
 assertBrightDataConfigWhenEnabled();
 validateRequiredEnvForRuntime();
@@ -94,20 +75,6 @@ app.use(cors(corsOptions));
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  if (
-    req.path === '/' ||
-    req.path === '/activate' ||
-    req.path.startsWith('/landing/') ||
-    req.path.startsWith('/assets/')
-  ) {
-    emitDebugLog('landing-assets', 'H6', 'index.ts:requestProbe', 'Incoming landing/app route request', {
-      method: req.method,
-      path: req.path,
-    });
-  }
-  next();
-});
 
 // Request logging (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -220,9 +187,6 @@ app.get('/terms', (req, res) => {
 
 // Serve landing page at root
 app.get('/', (req, res) => {
-  emitDebugLog('landing-assets', 'H7', 'index.ts:rootRoute', 'Serving landing root HTML', {
-    hasClientDist,
-  });
   const landingPath = path.join(__dirname, '../../landing/index.html');
   res.sendFile(landingPath, (err) => {
     if (err) console.error('Landing sendFile error:', err);
@@ -302,15 +266,6 @@ app.use('/api/test', allowTestAndDebugRoutes, testRoutes);
 app.use('/api/debug', allowTestAndDebugRoutes, debugRoutes);
 
 // 404 handler (must be after all routes)
-app.use((req, _res, next) => {
-  if (req.path.startsWith('/landing/') || req.path.startsWith('/assets/') || req.path === '/activate') {
-    emitDebugLog('landing-assets', 'H8', 'index.ts:pre404', 'Request reached 404 chain', {
-      method: req.method,
-      path: req.path,
-    });
-  }
-  next();
-});
 app.use(notFoundHandler);
 
 // Error handling middleware (must be last)
