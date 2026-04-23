@@ -11,8 +11,8 @@ This setup keeps everything on a single domain:
 1. In Render, create a **Web Service** from this GitHub repo.
 2. Ensure Render detects `render.yaml` from repo root.
 3. Confirm:
-   - Build command: `npm run install:all && npm run build`
-   - Start command: `npm run start`
+   - Build command: `npm run install:all && npm run build:render`
+   - Start command: `npm run start:render`
    - Health check: `/health`
 4. Add environment variables in Render:
    - `DATABASE_URL`

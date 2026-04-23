@@ -3,8 +3,8 @@ services:
     name: procuroapp
     env: node
     rootDir: .
-    buildCommand: NPM_CONFIG_PRODUCTION=false npm run install:all && npm run build
-    startCommand: npm run start
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm run install:all && npm run build:render
+    startCommand: npm run start:render
     healthCheckPath: /health
     autoDeploy: true
     envVars:
