@@ -19,6 +19,7 @@ import providersRoutes from './routes/providers';
 import billingRoutes from './routes/billing';
 import companyRoutes from './routes/company';
 import monitoringRoutes from './routes/monitoring';
+import adminRoutes from './routes/admin';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { securityHeaders } from './middleware/securityHeaders';
 import { companyContext } from './middleware/companyContext';
@@ -203,7 +204,7 @@ if (hasClientDist) {
     })
   );
 
-  const spaEntryRoutes = ['/activate', '/qb-success', '/dashboard', '/items', '/standalone'];
+  const spaEntryRoutes = ['/activate', '/qb-success', '/dashboard', '/items', '/standalone', '/admin-ops'];
   app.get(spaEntryRoutes, (_req, res) => {
     res.sendFile(clientDistIndex);
   });
@@ -262,6 +263,7 @@ app.use('/api/provider', providersRoutes); // Backend provider proxies
 app.use('/api/billing', billingRoutes); // Stripe billing routes
 app.use('/api/company', companyRoutes);
 app.use('/api/monitoring', monitoringRoutes); // Company activation
+app.use('/api/admin', adminRoutes);
 app.use('/api/test', allowTestAndDebugRoutes, testRoutes);
 app.use('/api/debug', allowTestAndDebugRoutes, debugRoutes);
 

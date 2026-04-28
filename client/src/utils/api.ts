@@ -59,7 +59,7 @@ export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   const headers = new Headers(init?.headers);
   const testHeaders = getApiHeaders();
   Object.entries(testHeaders).forEach(([k, v]) => headers.set(k, v));
-  return fetch(input, { ...init, headers });
+  return fetch(input, { ...init, headers, credentials: 'include' });
 }
 
 /**

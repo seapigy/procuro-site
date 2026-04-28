@@ -11,6 +11,7 @@ import { disconnectQuickBooksForRequest } from '../services/quickbooksDisconnect
 import { encryptTokens, getDecryptedQBTokens } from '../utils/crypto';
 import { refreshQuickBooksToken } from '../workers/tokenRefresh';
 import appConfig from '../../../config/app.json';
+import { finishImportRun, mapImportErrorCode, safeErrorMessage, startImportRun } from '../services/importRun';
 
 const router = Router();
 const TEST_MODE =
@@ -168,6 +169,7 @@ router.get('/connect', (req: Request, res: Response) => {
  * Handles the OAuth callback and token exchange
  */
 router.get('/callback', async (req: Request, res: Response) => {
+  let runId: number | null = null;
   try {
     const state = typeof req.query.state === 'string' ? req.query.state : undefined;
     const parsedState = consumeOAuthState(state);
@@ -288,6 +290,32 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
 
     if (!current?.user) {
+      // Live OAuth callback may not carry app user context yet; fall back to a stable company user.
+      const existingCompanyUser = await prisma.user.findFirst({
+        where: { companyId: company.id },
+        include: { company: true },
+      });
+
+      if (existingCompanyUser) {
+        current = { user: existingCompanyUser, companyId: company.id };
+      } else {
+        const fallbackEmail = `qb-${company.id}-${realmId}@procuroapp.local`;
+        const createdFallbackUser = await prisma.user.create({
+          data: {
+            email: fallbackEmail,
+            name: 'QuickBooks Connected User',
+            companyId: company.id,
+          },
+        });
+        const hydratedFallbackUser = await prisma.user.findUnique({
+          where: { id: createdFallbackUser.id },
+          include: { company: true },
+        });
+        current = { user: hydratedFallbackUser, companyId: company.id };
+      }
+    }
+
+    if (!current?.user) {
       throw new Error('No authenticated user context available for QuickBooks callback');
     }
 
@@ -310,11 +338,30 @@ router.get('/callback', async (req: Request, res: Response) => {
     
     try {
       if (realmId && token.access_token) {
+        runId = await startImportRun({
+          companyId: company.id,
+          userId: user.id,
+          source: 'oauth_callback',
+          realmId,
+          metadata: { mode: parsedState.mode },
+        });
         importedCount = await fetchAndStoreItems(user.id, company.id, token.access_token, realmId);
+        await finishImportRun(runId, {
+          status: importedCount > 0 ? 'success' : 'empty',
+          importedItemCount: importedCount,
+        });
       }
     } catch (importErr) {
       console.error('Error during import:', importErr);
       importError = importErr instanceof Error ? importErr : new Error('Unknown import error');
+      if (runId) {
+        await finishImportRun(runId, {
+          status: 'error',
+          importedItemCount: 0,
+          errorCode: mapImportErrorCode(importErr),
+          errorMessage: safeErrorMessage(importErr),
+        });
+      }
       // Continue with connection success, but mark import as failed
     }
 
@@ -331,6 +378,14 @@ router.get('/callback', async (req: Request, res: Response) => {
     res.redirect(`${frontendUrl}/qb-success?${params.toString()}`);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
+    if (runId) {
+      await finishImportRun(runId, {
+        status: 'error',
+        importedItemCount: 0,
+        errorCode: mapImportErrorCode(error),
+        errorMessage: safeErrorMessage(error),
+      });
+    }
     
     // Redirect to frontend with error
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -794,6 +849,7 @@ async function fetchAndStoreItems(
  * Manually trigger QuickBooks import. Uses stored tokens (decrypted).
  */
 router.post('/import', async (req: Request, res: Response) => {
+  let runId: number | null = null;
   try {
     const companyId = req.companyId;
     if (!companyId) {
@@ -815,6 +871,14 @@ router.post('/import', async (req: Request, res: Response) => {
     if (!accessToken) {
       return res.status(400).json({ error: 'Missing or invalid QuickBooks token' });
     }
+
+    runId = await startImportRun({
+      companyId: user.companyId,
+      userId: user.id,
+      source: 'manual_import',
+      realmId,
+      metadata: { trigger: 'api' },
+    });
 
     let tokenToUse = accessToken;
     let importedCount: number;
@@ -850,12 +914,24 @@ router.post('/import', async (req: Request, res: Response) => {
       },
     });
 
+    await finishImportRun(runId, {
+      status: importedCount > 0 ? 'success' : 'empty',
+      importedItemCount: importedCount,
+    });
     res.json({
       success: true,
       importedCount,
     });
   } catch (error) {
     console.error('Error during import:', error);
+    if (runId) {
+      await finishImportRun(runId, {
+        status: 'error',
+        importedItemCount: 0,
+        errorCode: mapImportErrorCode(error),
+        errorMessage: safeErrorMessage(error),
+      });
+    }
     res.status(500).json({
       error: 'Failed to import',
       details: error instanceof Error ? error.message : 'Unknown error',

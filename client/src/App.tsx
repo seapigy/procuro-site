@@ -11,6 +11,7 @@ import { ProviderTest } from './pages/ProviderTest';
 import { QA } from './pages/QA';
 import { TestAdmin } from './pages/TestAdmin';
 import { QBSuccess } from './pages/QBSuccess';
+import { AdminOps } from './pages/AdminOps';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/provider-test" element={<ProviderTest />} />
                 <Route path="/qa" element={<QA />} />
                 <Route path="/test-admin" element={<TestAdmin />} />
+                <Route path="/admin-ops" element={<AdminOps />} />
               </Routes>
             </BrowserRouter>
           </GuideProvider>
