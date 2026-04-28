@@ -29,6 +29,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
+      "script-src 'self' https://accounts.google.com; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src https://fonts.gstatic.com data:; " +
       "img-src 'self' data:; " +
