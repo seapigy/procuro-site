@@ -1,28 +1,70 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Info, RefreshCw, ExternalLink } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, RefreshCw, ExternalLink, Wrench, Search, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { apiUrl, apiFetch } from '../utils/api';
 import { setJustConnectedFlag } from '../context/WalkthroughContext';
 import appConfig from '../../../config/app.json';
 
+interface ImportQualitySummary {
+  lookbackDays: number;
+  topN: number;
+  candidatesEvaluated: number;
+  goodCount: number;
+  fixableCount: number;
+  trashCount: number;
+  searchableCount: number;
+  autoMatchedCount: number;
+  zeroGoodNames: boolean;
+  canAddManuallyCount: number;
+}
+
 export function QBSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isRetrying, setIsRetrying] = useState(false);
+  const [qualitySummary, setQualitySummary] = useState<ImportQualitySummary | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
   const success = searchParams.get('success') === 'true';
   const error = searchParams.get('error');
   const errorMessage = searchParams.get('errorMessage') || '';
   const companyName = searchParams.get('companyName') || '';
   const importedCount = parseInt(searchParams.get('importedCount') || '0', 10);
+  const importRunId = searchParams.get('importRunId');
   const inviteToken = searchParams.get('inviteToken') === 'true';
   const maxMonitoredItems = (appConfig.monitoring?.maxMonitoredItemsPerCompany as number) || 20;
 
   const isImportFailed = error === 'IMPORT_FAILED';
   const isAuthFailed = error === 'AUTHORIZATION_FAILED';
   const isUnknownFailure = !success && !isImportFailed && !isAuthFailed;
+
+  useEffect(() => {
+    if (!success || error) return;
+    let cancelled = false;
+    const load = async () => {
+      setIsLoadingSummary(true);
+      try {
+        const endpoint = importRunId
+          ? apiUrl(`/api/qb/import-quality/${importRunId}`)
+          : apiUrl('/api/qb/import-quality/latest');
+        const res = await apiFetch(endpoint);
+        const data = await res.json();
+        if (!cancelled && res.ok) {
+          setQualitySummary(data.qualitySummary || null);
+        }
+      } catch {
+        // Silent fallback keeps success page usable.
+      } finally {
+        if (!cancelled) setIsLoadingSummary(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [success, error, importRunId]);
 
   const handleRetryImport = async () => {
     setIsRetrying(true);
@@ -64,6 +106,8 @@ export function QBSuccess() {
     navigate('/');
   };
 
+  const handleGoToItems = () => navigate('/items');
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -99,6 +143,83 @@ export function QBSuccess() {
                         Monitoring your top {maxMonitoredItems} items daily for savings.
                       </p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isLoadingSummary && (
+              <Card>
+                <CardContent className="pt-6 text-sm text-muted-foreground">
+                  Reviewing item name quality...
+                </CardContent>
+              </Card>
+            )}
+
+            {qualitySummary && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="h-5 w-5" />
+                    Import Quality Wizard
+                  </CardTitle>
+                  <CardDescription>
+                    We reviewed your top {qualitySummary.topN} most-used QuickBooks names from the last {qualitySummary.lookbackDays} days.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Searchable names</p>
+                      <p className="font-semibold">{qualitySummary.goodCount} / {qualitySummary.topN}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Need fixing</p>
+                      <p className="font-semibold">{qualitySummary.fixableCount}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Trash (ignored)</p>
+                      <p className="font-semibold">{qualitySummary.trashCount}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Auto matched</p>
+                      <p className="font-semibold">{qualitySummary.autoMatchedCount}</p>
+                    </div>
+                  </div>
+
+                  {qualitySummary.zeroGoodNames ? (
+                    <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+                      <CardContent className="pt-6 space-y-3">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100">
+                          No good searchable names were found in this import.
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          We skipped auto-search to avoid bad matches. Add items manually and use clear product names.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  <div className="rounded-md border p-3 text-sm space-y-2">
+                    <p className="font-medium">What to do next</p>
+                    <p>Good names were auto-searched. Fixable names can be renamed in Items. Trash names stay ignored.</p>
+                    <p>
+                      You can manually add up to <strong>{qualitySummary.canAddManuallyCount}</strong> more high-value items now.
+                    </p>
+                    <p className="text-muted-foreground">
+                      Good examples: "HP 414A Cyan Toner Cartridge", "3M 8210 N95 Respirator 20 pack", "Rubbermaid 32 Gallon Brute Trash Can".
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={handleGoToItems}>
+                      <Wrench className="h-4 w-4 mr-2" />
+                      Fix Names in Items
+                    </Button>
+                    <Button onClick={handleGoToItems} variant="outline">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Items Manually
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

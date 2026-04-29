@@ -48,6 +48,69 @@ function hasConcreteMatchEvidence(match: any): boolean {
   return retailer.length > 0 && url.length > 0 && hasPrice;
 }
 
+/**
+ * Bill/invoice-style QB descriptions are poor product search strings (e.g. "Grainger BILL-1091").
+ * Do not call Bright Data / discovery for these on import.
+ */
+function isGarbageQbImportSearchName(name: string): boolean {
+  const n = name.trim();
+  if (n.length < 2) return true;
+  if (/\bBILL[-\s#]?\d{2,}\b/i.test(n)) return true;
+  if (/\bINV(?:OICE)?[-\s#]?\d{2,}\b/i.test(n)) return true;
+  if (/^payment\b/i.test(n)) return true;
+  if (/^unname(d)?\b/i.test(n) || /^unnamed\b/i.test(n)) return true;
+  return false;
+}
+
+function parseNonNegativeIntEnv(value: string | undefined, fallback: number, max: number): number {
+  const v = Number(String(value ?? '').trim());
+  if (!Number.isFinite(v) || v < 0) return fallback;
+  return Math.min(Math.floor(v), max);
+}
+
+function getQbImportPurchaseLookbackDays(): number {
+  return parseNonNegativeIntEnv(process.env.QB_IMPORT_PURCHASE_LOOKBACK_DAYS, 365, 366 * 5);
+}
+
+/** How many distinct item names (by frequency in pulled purchases) may trigger retailer matching on import. */
+function getQbImportRetailerMatchPolicy(): { matchTopN: number; skipAll: boolean } {
+  const skipAll =
+    String(process.env.QB_IMPORT_SKIP_RETAILER_MATCH ?? '').trim().toLowerCase() === 'true';
+  if (skipAll) return { matchTopN: 0, skipAll: true };
+  const matchTopN = parseNonNegativeIntEnv(process.env.QB_IMPORT_MATCH_TOP_N, 20, 500);
+  return { matchTopN, skipAll: false };
+}
+
+type QbImportQualityBucket = 'good' | 'fixable' | 'trash';
+
+interface QbImportQualityRow {
+  name: string;
+  key: string;
+  lineCount: number;
+  quality: QbImportQualityBucket;
+  matchedAutomatically: boolean;
+}
+
+interface QbImportQualitySummary {
+  lookbackDays: number;
+  topN: number;
+  candidatesEvaluated: number;
+  goodCount: number;
+  fixableCount: number;
+  trashCount: number;
+  searchableCount: number;
+  autoMatchedCount: number;
+  zeroGoodNames: boolean;
+  canAddManuallyCount: number;
+  rows: QbImportQualityRow[];
+}
+
+function classifyQbImportNameQuality(name: string): QbImportQualityBucket {
+  if (isGarbageQbImportSearchName(name)) return 'trash';
+  if (isVagueName(name)) return 'fixable';
+  return 'good';
+}
+
 function buildOAuthState(mode: 'connect' | 'reconnect', inviteToken?: string): string {
   const nonce = crypto.randomBytes(24).toString('base64url');
   qbOAuthStates.set(nonce, { mode, inviteToken, createdAt: Date.now() });
@@ -334,6 +397,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Fetch and store purchase items with error handling
     let importedCount = 0;
+    let importQualitySummary: QbImportQualitySummary | null = null;
     let importError: Error | null = null;
     
     try {
@@ -345,10 +409,13 @@ router.get('/callback', async (req: Request, res: Response) => {
           realmId,
           metadata: { mode: parsedState.mode },
         });
-        importedCount = await fetchAndStoreItems(user.id, company.id, token.access_token, realmId);
+        const importResult = await fetchAndStoreItems(user.id, company.id, token.access_token, realmId);
+        importedCount = importResult.importedCount;
+        importQualitySummary = importResult.qualitySummary;
         await finishImportRun(runId, {
           status: importedCount > 0 ? 'success' : 'empty',
           importedItemCount: importedCount,
+          metadata: importQualitySummary ? { qualitySummary: importQualitySummary } : undefined,
         });
       }
     } catch (importErr) {
@@ -371,6 +438,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       success: 'true',
       companyName: company.name || '',
       importedCount: importedCount.toString(),
+      ...(runId ? { importRunId: String(runId) } : {}),
       ...(importError ? { error: 'IMPORT_FAILED', errorMessage: importError.message } : {}),
       ...(inviteToken ? { inviteToken: 'true' } : {}),
     });
@@ -450,18 +518,23 @@ async function fetchAndStoreItems(
   companyId: number,
   accessToken: string,
   realmId: string
-): Promise<number> {
+): Promise<{ importedCount: number; qualitySummary: QbImportQualitySummary | null }> {
   if (!realmId || realmId.trim() === '') {
     console.error('fetchAndStoreItems: realmId is required for Intuit API calls');
     throw new Error('realmId is required');
   }
   console.log(`📦 Importing from QuickBooks realmId=${realmId} (companyId=${companyId})`);
-  /** Default true: do not call Bright Data / retailer matching on every QB line (slow, costly, poor keywords from bills). */
-  const skipRetailerMatchOnQbImport =
-    String(process.env.QB_IMPORT_SKIP_RETAILER_MATCH ?? 'true').trim().toLowerCase() !== 'false';
-  if (skipRetailerMatchOnQbImport) {
+  const { matchTopN, skipAll: qbImportSkipAllRetailerMatch } = getQbImportRetailerMatchPolicy();
+  const lookbackDays = getQbImportPurchaseLookbackDays();
+  if (qbImportSkipAllRetailerMatch) {
     console.log(
-      '🛑 QB import: skipping retailer/Amazon matching (QB_IMPORT_SKIP_RETAILER_MATCH default true). Set to false only if you need legacy per-item matching on import.'
+      '🛑 QB import: QB_IMPORT_SKIP_RETAILER_MATCH=true — no retailer/Bright Data calls on import.'
+    );
+  } else if (matchTopN === 0) {
+    console.log('🛑 QB import: QB_IMPORT_MATCH_TOP_N=0 — no retailer matching on import.');
+  } else {
+    console.log(
+      `📊 QB import: retailer matching for up to ${matchTopN} most-purchased item names (lookback ${lookbackDays}d, garbage names skipped).`
     );
   }
   try {
@@ -469,10 +542,12 @@ async function fetchAndStoreItems(
       ? 'https://quickbooks.api.intuit.com'
       : 'https://sandbox-quickbooks.api.intuit.com';
 
-    // Query for Purchase transactions
-    // QuickBooks API query to get last 100 purchases/bills
-    const query = `SELECT * FROM Purchase MAXRESULTS 100`;
-    
+    const minDate = new Date();
+    minDate.setUTCDate(minDate.getUTCDate() - lookbackDays);
+    const minDateStr = minDate.toISOString().slice(0, 10);
+    const minDateMs = new Date(`${minDateStr}T00:00:00.000Z`).getTime();
+    const query = `SELECT * FROM Purchase WHERE TxnDate >= '${minDateStr}' MAXRESULTS 1000`;
+
     const response = await axios.get(
       `${apiUrl}/v3/company/${realmId}/query`,
       {
@@ -491,16 +566,15 @@ async function fetchAndStoreItems(
     const itemsToCreate = [];
 
     for (const purchase of purchases) {
+      const purchaseDate = purchase.TxnDate ? new Date(purchase.TxnDate) : new Date();
+      if (purchase.TxnDate && purchaseDate.getTime() < minDateMs) {
+        continue;
+      }
       // Extract line items from the purchase
       const lines = purchase.Line || [];
-      
+
       // Get vendor name from the purchase
       const vendorName = purchase.VendorRef?.name || null;
-      
-      // Extract purchase date from transaction
-      const purchaseDate = purchase.TxnDate 
-        ? new Date(purchase.TxnDate)
-        : new Date();
       
       for (const line of lines) {
         if (line.DetailType === 'ItemBasedExpenseLineDetail' && line.ItemBasedExpenseLineDetail) {
@@ -587,6 +661,41 @@ async function fetchAndStoreItems(
           entry.lastPurchaseDateForPrice = purchaseDate;
         }
       }
+
+      const sortedKeys = [...itemPurchaseMap.keys()].sort((a, b) => {
+        const ea = itemPurchaseMap.get(a)!;
+        const eb = itemPurchaseMap.get(b)!;
+        const ca = ea.purchaseDates.length;
+        const cb = eb.purchaseDates.length;
+        if (cb !== ca) return cb - ca;
+        const qa = ea.quantities.reduce((s, q) => s + q, 0);
+        const qb = eb.quantities.reduce((s, q) => s + q, 0);
+        return qb - qa;
+      });
+      const topKeys = sortedKeys.slice(0, Math.max(0, matchTopN));
+      const qualityRowsSeed = topKeys.map((key) => {
+        const entry = itemPurchaseMap.get(key)!;
+        const quality = classifyQbImportNameQuality(entry.itemData.name);
+        return {
+          key,
+          name: entry.itemData.name,
+          lineCount: entry.purchaseDates.length,
+          quality,
+        };
+      });
+      const importMatchKeys = new Set(
+        qualityRowsSeed.filter((row) => row.quality === 'good').map((row) => row.key)
+      );
+      const qualityByKey = new Map<string, QbImportQualityBucket>();
+      for (const row of qualityRowsSeed) {
+        qualityByKey.set(row.key, row.quality);
+      }
+      if (matchTopN > 0 && !qbImportSkipAllRetailerMatch) {
+        console.log(
+          `📊 QB import: ${importMatchKeys.size} item name(s) selected for retailer match (cap ${matchTopN}, garbage excluded).`
+        );
+      }
+      const importMatchedKeys = new Set<string>();
 
       // Process each unique item
       for (const [key, entry] of itemPurchaseMap) {
@@ -715,11 +824,19 @@ async function fetchAndStoreItems(
 
         // Detect if name is vague
         const vagueName = isVagueName(item.name);
+        const importQuality = qualityByKey.get(key);
 
-        if (skipRetailerMatchOnQbImport) {
+        const runRetailerMatchThisItem =
+          !qbImportSkipAllRetailerMatch && matchTopN > 0 && importMatchKeys.has(key);
+
+        if (!runRetailerMatchThisItem) {
+          const shouldRequestFix =
+            importQuality === 'fixable'
+              ? needsClarification(item.name, null)
+              : false;
           const matchUpdateData: Record<string, unknown> = {
             isVagueName: vagueName,
-            needsClarification: needsClarification(item.name, null),
+            needsClarification: shouldRequestFix,
           };
           applyUnmatchedState(matchUpdateData, item.name);
           await prisma.item.update({
@@ -751,6 +868,7 @@ async function fetchAndStoreItems(
             };
 
             if (match && hasConcreteMatchEvidence(match)) {
+              importMatchedKeys.add(key);
               // Store normalized name
               if (match.normalizedName) {
                 matchUpdateData.normalizedName = match.normalizedName;
@@ -813,6 +931,25 @@ async function fetchAndStoreItems(
       }
       
       const uniqueItemCount = itemPurchaseMap.size;
+      const goodCount = qualityRowsSeed.filter((r) => r.quality === 'good').length;
+      const fixableCount = qualityRowsSeed.filter((r) => r.quality === 'fixable').length;
+      const trashCount = qualityRowsSeed.filter((r) => r.quality === 'trash').length;
+      const qualitySummary: QbImportQualitySummary = {
+        lookbackDays,
+        topN: matchTopN,
+        candidatesEvaluated: qualityRowsSeed.length,
+        goodCount,
+        fixableCount,
+        trashCount,
+        searchableCount: qbImportSkipAllRetailerMatch ? 0 : goodCount,
+        autoMatchedCount: qbImportSkipAllRetailerMatch ? 0 : importMatchedKeys.size,
+        zeroGoodNames: goodCount === 0,
+        canAddManuallyCount: Math.max(0, matchTopN - goodCount),
+        rows: qualityRowsSeed.map((row) => ({
+          ...row,
+          matchedAutomatically: importMatchedKeys.has(row.key),
+        })),
+      };
       console.log(`✅ Processed ${uniqueItemCount} unique items for user ${userId}`);
       
       // Recompute monitoring priorities after import
@@ -837,7 +974,7 @@ async function fetchAndStoreItems(
         });
       }
       
-      return uniqueItemCount;
+      return { importedCount: uniqueItemCount, qualitySummary };
     } else {
       console.log('⚠️ No purchase items found in QuickBooks');
       const user = await prisma.user.findUnique({
@@ -854,7 +991,22 @@ async function fetchAndStoreItems(
           },
         });
       }
-      return 0;
+      return {
+        importedCount: 0,
+        qualitySummary: {
+          lookbackDays,
+          topN: matchTopN,
+          candidatesEvaluated: 0,
+          goodCount: 0,
+          fixableCount: 0,
+          trashCount: 0,
+          searchableCount: 0,
+          autoMatchedCount: 0,
+          zeroGoodNames: true,
+          canAddManuallyCount: matchTopN,
+          rows: [],
+        },
+      };
     }
 
   } catch (error) {
@@ -904,8 +1056,11 @@ router.post('/import', async (req: Request, res: Response) => {
 
     let tokenToUse = accessToken;
     let importedCount: number;
+    let importQualitySummary: QbImportQualitySummary | null = null;
     try {
-      importedCount = await fetchAndStoreItems(user.id, user.companyId, tokenToUse, realmId);
+      const importResult = await fetchAndStoreItems(user.id, user.companyId, tokenToUse, realmId);
+      importedCount = importResult.importedCount;
+      importQualitySummary = importResult.qualitySummary;
     } catch (error) {
       if (!isTokenExpiredError(error) || !refreshToken) {
         throw error;
@@ -924,7 +1079,9 @@ router.post('/import', async (req: Request, res: Response) => {
         },
       });
       tokenToUse = refreshed.accessToken;
-      importedCount = await fetchAndStoreItems(user.id, user.companyId, tokenToUse, realmId);
+      const importResult = await fetchAndStoreItems(user.id, user.companyId, tokenToUse, realmId);
+      importedCount = importResult.importedCount;
+      importQualitySummary = importResult.qualitySummary;
     }
 
     await prisma.company.update({
@@ -939,10 +1096,13 @@ router.post('/import', async (req: Request, res: Response) => {
     await finishImportRun(runId, {
       status: importedCount > 0 ? 'success' : 'empty',
       importedItemCount: importedCount,
+      metadata: importQualitySummary ? { qualitySummary: importQualitySummary } : undefined,
     });
     res.json({
       success: true,
       importedCount,
+      importRunId: runId,
+      qualitySummary: importQualitySummary,
     });
   } catch (error) {
     console.error('Error during import:', error);
@@ -958,6 +1118,63 @@ router.post('/import', async (req: Request, res: Response) => {
       error: 'Failed to import',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
+  }
+});
+
+/**
+ * GET /api/qb/import-quality/latest
+ * Returns latest import-run quality summary for current company.
+ */
+router.get('/import-quality/latest', async (req: Request, res: Response) => {
+  try {
+    const companyId = req.companyId;
+    if (!companyId) return res.status(404).json({ error: 'User or company not found' });
+    const run = await prisma.importRun.findFirst({
+      where: { companyId },
+      orderBy: { startedAt: 'desc' },
+      select: { id: true, status: true, metadata: true, startedAt: true, importedItemCount: true },
+    });
+    if (!run) return res.status(404).json({ error: 'No import runs found' });
+    const metadata = (run.metadata || {}) as Record<string, any>;
+    res.json({
+      success: true,
+      importRunId: run.id,
+      status: run.status,
+      startedAt: run.startedAt,
+      importedCount: run.importedItemCount,
+      qualitySummary: metadata.qualitySummary || null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch import quality summary' });
+  }
+});
+
+/**
+ * GET /api/qb/import-quality/:runId
+ * Returns quality summary for a specific import run.
+ */
+router.get('/import-quality/:runId', async (req: Request, res: Response) => {
+  try {
+    const companyId = req.companyId;
+    if (!companyId) return res.status(404).json({ error: 'User or company not found' });
+    const runId = Number(req.params.runId);
+    if (!Number.isFinite(runId) || runId <= 0) return res.status(400).json({ error: 'Invalid run id' });
+    const run = await prisma.importRun.findFirst({
+      where: { id: runId, companyId },
+      select: { id: true, status: true, metadata: true, startedAt: true, importedItemCount: true },
+    });
+    if (!run) return res.status(404).json({ error: 'Import run not found' });
+    const metadata = (run.metadata || {}) as Record<string, any>;
+    res.json({
+      success: true,
+      importRunId: run.id,
+      status: run.status,
+      startedAt: run.startedAt,
+      importedCount: run.importedItemCount,
+      qualitySummary: metadata.qualitySummary || null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch import quality summary' });
   }
 });
 

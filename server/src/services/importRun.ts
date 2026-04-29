@@ -63,11 +63,20 @@ export async function finishImportRun(
     importedItemCount?: number;
     errorCode?: string | null;
     errorMessage?: string | null;
+    metadata?: Record<string, unknown>;
   }
 ): Promise<void> {
   const finishedAt = new Date();
-  const started = await prisma.importRun.findUnique({ where: { id: runId }, select: { startedAt: true } });
+  const started = await prisma.importRun.findUnique({
+    where: { id: runId },
+    select: { startedAt: true, metadata: true },
+  });
   const durationMs = started?.startedAt ? Math.max(0, finishedAt.getTime() - started.startedAt.getTime()) : null;
+  const existingMetadata =
+    started?.metadata && typeof started.metadata === 'object' && !Array.isArray(started.metadata)
+      ? (started.metadata as Record<string, unknown>)
+      : {};
+  const mergedMetadata = { ...existingMetadata, ...(data.metadata || {}) };
 
   await prisma.importRun.update({
     where: { id: runId },
@@ -78,6 +87,7 @@ export async function finishImportRun(
       errorMessage: data.errorMessage ?? null,
       finishedAt,
       durationMs,
+      metadata: mergedMetadata as Prisma.InputJsonValue,
     },
   });
 }
