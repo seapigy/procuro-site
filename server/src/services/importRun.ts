@@ -81,3 +81,26 @@ export async function finishImportRun(
     },
   });
 }
+
+/**
+ * Mark ImportRun rows still `running` after a cutoff as error (deploy/restart/kill left them open).
+ * Default cutoff: IMPORT_RUN_STALE_RUNNING_MINUTES (5) minutes ago.
+ */
+export async function markStaleRunningImportRuns(): Promise<number> {
+  const raw = Number(process.env.IMPORT_RUN_STALE_RUNNING_MINUTES || '5');
+  const minutes = Number.isFinite(raw) && raw >= 1 ? Math.min(raw, 24 * 60) : 5;
+  const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+  const stuck = await prisma.importRun.findMany({
+    where: { status: 'running', startedAt: { lt: cutoff } },
+    select: { id: true },
+  });
+  for (const row of stuck) {
+    await finishImportRun(row.id, {
+      status: 'error',
+      importedItemCount: 0,
+      errorCode: 'import_interrupted',
+      errorMessage: `Import did not finish within ${minutes}m (server restart, deploy, or killed process).`,
+    });
+  }
+  return stuck.length;
+}

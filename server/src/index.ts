@@ -32,6 +32,7 @@ import appConfig from '../../config/app.json';
 import { startDailyPriceCheckCron } from './workers/dailyPriceCheck';
 import { startTokenRefreshCron } from './workers/tokenRefresh';
 import { getSchedulerRole, shouldStartCronSchedulers, validateRequiredEnvForRuntime } from './config/runtime';
+import { markStaleRunningImportRuns } from './services/importRun';
 
 // Fail startup if Bright Data is enabled but required env vars are missing
 assertBrightDataConfigWhenEnabled();
@@ -294,6 +295,12 @@ app.listen(PORT, () => {
   } else {
     console.log('⏸️  Cron schedulers disabled on this process (api-only role)');
   }
-  
+
+  void markStaleRunningImportRuns()
+    .then((n) => {
+      if (n > 0) console.log(`🧹 Closed ${n} stale ImportRun(s) stuck in running`);
+    })
+    .catch((e) => console.error('markStaleRunningImportRuns:', e));
+
   console.log(`\n✅ Server ready and listening for requests\n`);
 });

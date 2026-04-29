@@ -9,6 +9,7 @@ import {
   signAdminSession,
 } from '../config/adminPortal';
 import { requireAdminAuth, setAdminSessionCookie, writeAdminAudit } from '../middleware/adminAuth';
+import { markStaleRunningImportRuns } from '../services/importRun';
 
 const router = Router();
 
@@ -87,6 +88,12 @@ router.get('/session', requireAdminAuth, async (req: Request, res: Response) => 
 });
 
 router.get('/import-runs', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const closed = await markStaleRunningImportRuns();
+    if (closed > 0) console.log(`[admin] Closed ${closed} stale ImportRun(s) stuck in running`);
+  } catch (e) {
+    console.error('[admin] markStaleRunningImportRuns:', e);
+  }
   const limit = Math.min(200, Math.max(1, Number(req.query.limit || 50)));
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const companyId = Number(req.query.companyId || '');
@@ -110,6 +117,11 @@ router.get('/import-runs', requireAdminAuth, async (req: Request, res: Response)
 });
 
 router.get('/import-summary', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    await markStaleRunningImportRuns();
+  } catch (e) {
+    console.error('[admin] markStaleRunningImportRuns:', e);
+  }
   const slowThresholdMs = Number(process.env.ADMIN_IMPORT_SLOW_THRESHOLD_MS || '60000');
   const runs = await prisma.importRun.findMany({
     orderBy: { startedAt: 'desc' },
