@@ -456,6 +456,14 @@ async function fetchAndStoreItems(
     throw new Error('realmId is required');
   }
   console.log(`📦 Importing from QuickBooks realmId=${realmId} (companyId=${companyId})`);
+  /** Default true: do not call Bright Data / retailer matching on every QB line (slow, costly, poor keywords from bills). */
+  const skipRetailerMatchOnQbImport =
+    String(process.env.QB_IMPORT_SKIP_RETAILER_MATCH ?? 'true').trim().toLowerCase() !== 'false';
+  if (skipRetailerMatchOnQbImport) {
+    console.log(
+      '🛑 QB import: skipping retailer/Amazon matching (QB_IMPORT_SKIP_RETAILER_MATCH default true). Set to false only if you need legacy per-item matching on import.'
+    );
+  }
   try {
     const apiUrl = process.env.QUICKBOOKS_ENVIRONMENT === 'production'
       ? 'https://quickbooks.api.intuit.com'
@@ -708,85 +716,99 @@ async function fetchAndStoreItems(
         // Detect if name is vague
         const vagueName = isVagueName(item.name);
 
-        // Only match if item is not manually matched (respect user overrides)
-        const shouldRematch = !item.isManuallyMatched && 
-          (!item.matchedRetailer || Math.abs((item.matchedPrice || 0) - item.lastPaidPrice) > item.lastPaidPrice * 0.1);
-        
-        if (shouldRematch) {
-          console.log(`🔗 Matching: ${item.name}...`);
-          const match = await matchItemToRetailers(item.name, item.lastPaidPrice, item.isManuallyMatched || false, {
-            productBrand: item.productBrand,
-            amazonSearchHint: item.amazonSearchHint,
-            amazonAsin: item.amazonAsin,
-          });
-          
-          // Determine if clarification is needed
-          const clarificationNeeded = needsClarification(item.name, match?.confidence || null);
-          
-          // Prepare update data with new matching fields
-          const matchUpdateData: any = {
+        if (skipRetailerMatchOnQbImport) {
+          const matchUpdateData: Record<string, unknown> = {
             isVagueName: vagueName,
-            needsClarification: clarificationNeeded,
+            needsClarification: needsClarification(item.name, null),
           };
-          
-          if (match && hasConcreteMatchEvidence(match)) {
-            // Store normalized name
-            if (match.normalizedName) {
-              matchUpdateData.normalizedName = match.normalizedName;
-            }
-            
-            // Store match status and details
-            matchUpdateData.matchStatus = match.status;
-            matchUpdateData.matchConfidence = match.confidence;
-            
-            // Store match provider, url, title, price
-            if (match.retailer) {
-              matchUpdateData.matchProvider = match.retailer;
-              matchUpdateData.matchedRetailer = match.retailer.charAt(0).toUpperCase() + match.retailer.slice(1);
-            }
-            if (match.url) {
-              matchUpdateData.matchUrl = match.url;
-              matchUpdateData.matchedUrl = match.url;
-            }
-            if (match.title) {
-              matchUpdateData.matchTitle = match.title;
-            }
-            if (match.price) {
-              matchUpdateData.matchPrice = match.price;
-              matchUpdateData.matchedPrice = match.price;
-            }
-            
-            // Store match reasons
-            if (match.matchReasons || match.alternatives) {
-              matchUpdateData.matchReasons = {
-                ...(match.matchReasons || {}),
-                alternatives: match.alternatives || [],
-              };
-            }
-            
-            matchUpdateData.lastMatchedAt = new Date();
-          } else {
-            // No match found
-            applyUnmatchedState(matchUpdateData, item.name);
-          }
-          
-          // Update item with match data and flags
+          applyUnmatchedState(matchUpdateData, item.name);
           await prisma.item.update({
             where: { id: item.id },
-            data: matchUpdateData,
+            data: matchUpdateData as any,
           });
-          
-          if (vagueName) {
-            console.log(`   ⚠️ Vague name detected - may need clarification`);
+        } else {
+          // Only match if item is not manually matched (respect user overrides)
+          const shouldRematch =
+            !item.isManuallyMatched &&
+            (!item.matchedRetailer ||
+              Math.abs((item.matchedPrice || 0) - item.lastPaidPrice) > item.lastPaidPrice * 0.1);
+
+          if (shouldRematch) {
+            console.log(`🔗 Matching: ${item.name}...`);
+            const match = await matchItemToRetailers(item.name, item.lastPaidPrice, item.isManuallyMatched || false, {
+              productBrand: item.productBrand,
+              amazonSearchHint: item.amazonSearchHint,
+              amazonAsin: item.amazonAsin,
+            });
+
+            // Determine if clarification is needed
+            const clarificationNeeded = needsClarification(item.name, match?.confidence || null);
+
+            // Prepare update data with new matching fields
+            const matchUpdateData: any = {
+              isVagueName: vagueName,
+              needsClarification: clarificationNeeded,
+            };
+
+            if (match && hasConcreteMatchEvidence(match)) {
+              // Store normalized name
+              if (match.normalizedName) {
+                matchUpdateData.normalizedName = match.normalizedName;
+              }
+
+              // Store match status and details
+              matchUpdateData.matchStatus = match.status;
+              matchUpdateData.matchConfidence = match.confidence;
+
+              // Store match provider, url, title, price
+              if (match.retailer) {
+                matchUpdateData.matchProvider = match.retailer;
+                matchUpdateData.matchedRetailer = match.retailer.charAt(0).toUpperCase() + match.retailer.slice(1);
+              }
+              if (match.url) {
+                matchUpdateData.matchUrl = match.url;
+                matchUpdateData.matchedUrl = match.url;
+              }
+              if (match.title) {
+                matchUpdateData.matchTitle = match.title;
+              }
+              if (match.price) {
+                matchUpdateData.matchPrice = match.price;
+                matchUpdateData.matchedPrice = match.price;
+              }
+
+              // Store match reasons
+              if (match.matchReasons || match.alternatives) {
+                matchUpdateData.matchReasons = {
+                  ...(match.matchReasons || {}),
+                  alternatives: match.alternatives || [],
+                };
+              }
+
+              matchUpdateData.lastMatchedAt = new Date();
+            } else {
+              // No match found
+              applyUnmatchedState(matchUpdateData, item.name);
+            }
+
+            // Update item with match data and flags
+            await prisma.item.update({
+              where: { id: item.id },
+              data: matchUpdateData,
+            });
+
+            if (vagueName) {
+              console.log(`   ⚠️ Vague name detected - may need clarification`);
+            }
+            if (match && hasConcreteMatchEvidence(match) && match.confidence < 0.5) {
+              console.log(`   ⚠️ Low confidence match (${(match.confidence * 100).toFixed(1)}%)`);
+            }
+            if (match && hasConcreteMatchEvidence(match) && match.status === 'needs_review') {
+              console.log(`   ⚠️ Match needs review (status: ${match.status})`);
+            }
+          } else if (item.isManuallyMatched) {
+            console.log(`   ✓ Skipping rematch - item is manually matched`);
           }
-          if (match && hasConcreteMatchEvidence(match) && match.confidence < 0.5) {
-            console.log(`   ⚠️ Low confidence match (${(match.confidence * 100).toFixed(1)}%)`);
-          }
-          if (match && hasConcreteMatchEvidence(match) && match.status === 'needs_review') {
-            console.log(`   ⚠️ Match needs review (status: ${match.status})`);
-          }
-        } else if (item.isManuallyMatched) {
-          console.log(`   ✓ Skipping rematch - item is manually matched`);
         }
       }
       
