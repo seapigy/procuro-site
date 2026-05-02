@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../lib/prisma';
 import appConfig from '../../../config/app.json';
+import { resolveActivationCompany } from '../services/activationCompany';
 
 const router = Router();
 
@@ -10,30 +10,6 @@ const TEST_MODE =
   false;
 
 type NextStep = 'CONNECT_QB' | 'ADD_PAYMENT' | 'IMPORTING' | 'READY';
-
-async function resolveActivationCompany(req: Request) {
-  if (req.companyId) {
-    const direct = await prisma.company.findUnique({ where: { id: req.companyId } });
-    if (direct) return direct;
-  }
-
-  // Fallback for production flows where request context user is not yet hydrated:
-  // use the most recently connected/imported company so users do not get sent back to CONNECT_QB loops.
-  return prisma.company.findFirst({
-    where: {
-      OR: [
-        { isQuickBooksConnected: true },
-        { realmId: { not: null } },
-        { importCompletedAt: { not: null } },
-      ],
-    },
-    orderBy: [
-      { importCompletedAt: 'desc' },
-      { importLastAttemptedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
-  });
-}
 
 /**
  * GET /api/company/activation

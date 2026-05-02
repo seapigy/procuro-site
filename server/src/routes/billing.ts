@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import prisma from '../lib/prisma';
+import { resolveActivationCompany } from '../services/activationCompany';
 
 const router = Router();
 
@@ -11,7 +12,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 /**
  * Resolve user + company for billing: prefers `companyContext` (X-Test-User-Email / session),
- * falls back to legacy dev user `test@procuroapp.com`.
+ * then legacy dev user `test@procuroapp.com`, then the same activation fallback as
+ * `GET /api/company/activation` + first user on that company (non–TEST_MODE without session).
  */
 async function getBillingContext(req: Request) {
   const companyId = req.companyId;
@@ -21,13 +23,26 @@ async function getBillingContext(req: Request) {
       where: { id: contextUser.id },
       include: { company: true },
     });
-    if (user?.company) return { user, company: user.company };
+    if (user?.company) {
+      return { user, company: user.company };
+    }
   }
   const user = await prisma.user.findFirst({
     where: { email: 'test@procuroapp.com' },
     include: { company: true },
   });
-  return user?.company ? { user, company: user.company } : null;
+  const testFallback = user?.company ? { user, company: user.company } : null;
+  if (testFallback) return testFallback;
+
+  const company = await resolveActivationCompany(req);
+  if (!company) return null;
+  const aligned = await prisma.user.findFirst({
+    where: { companyId: company.id },
+    include: { company: true },
+    orderBy: { id: 'asc' },
+  });
+  if (!aligned?.company) return null;
+  return { user: aligned, company: aligned.company };
 }
 
 /**
