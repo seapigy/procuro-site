@@ -14,7 +14,9 @@
     "build:render": "npm run prisma:generate --workspace=server && npm run build --workspace=client",
     "start": "npm run start --workspace=server",
     "start:render": "npm run start:runtime --workspace=server",
-    "install:all": "npm install --include=dev && npm install --workspace=server --include=dev && npm install --workspace=client --include=dev"
+    "install:all": "npm install --include=dev && npm install --workspace=server --include=dev && npm install --workspace=client --include=dev",
+    "db:list-companies": "npm run db:list-companies --workspace=server",
+    "db:wipe-companies": "npm run db:wipe-companies --workspace=server"
   },
   "keywords": [
     "price-monitoring",

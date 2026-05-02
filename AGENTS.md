@@ -39,6 +39,8 @@ npm run build          # build server then client
 - `npm run dev` — `tsx watch src/index.ts`
 - `npm test` — Jest
 - `npx prisma migrate dev` / `npm run db:deploy` — migrations
+- `npm run db:list-companies` — print `Company` rows (uses `server/.env` `DATABASE_URL`; run from repo root or `server/`)
+- `npm run db:wipe-companies` — delete all companies and tenant data (sandbox reset; destructive)
 - `npm run seed` — seed script
 - `npm run test:rls`, `npm run tenancy:verify` — tenancy checks
 

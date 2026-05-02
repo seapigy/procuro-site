@@ -13,6 +13,8 @@
     "prisma:studio": "prisma studio",
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
+    "db:list-companies": "tsx scripts/list-companies.ts",
+    "db:wipe-companies": "tsx scripts/wipe-all-companies.ts",
     "db:connect-test": "node scripts/test-db-connect.js",
     "db:rls": "node scripts/run-rls.js",
     "seed": "tsx src/seed.ts",
