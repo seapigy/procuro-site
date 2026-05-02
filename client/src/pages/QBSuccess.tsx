@@ -18,6 +18,8 @@ interface ImportQualitySummary {
   autoMatchedCount: number;
   zeroGoodNames: boolean;
   canAddManuallyCount: number;
+  importRetailerMatchSkipped?: boolean;
+  importedSampleNames?: string[];
 }
 
 export function QBSuccess() {
@@ -164,14 +166,56 @@ export function QBSuccess() {
                     Import Quality Wizard
                   </CardTitle>
                   <CardDescription>
-                    We reviewed your top {qualitySummary.topN} most-used QuickBooks names from the last {qualitySummary.lookbackDays} days.
+                    We classified{' '}
+                    <strong>{qualitySummary.candidatesEvaluated}</strong> distinct item name
+                    {qualitySummary.candidatesEvaluated === 1 ? '' : 's'} from your QuickBooks purchases in the last{' '}
+                    <strong>{qualitySummary.lookbackDays}</strong> days
+                    {qualitySummary.topN > 0 ? (
+                      <>
+                        {' '}
+                        (import-time auto-search limited to your top <strong>{qualitySummary.topN}</strong> by purchase activity).
+                      </>
+                    ) : null}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {importedCount > 0 &&
+                    qualitySummary.importedSampleNames &&
+                    qualitySummary.importedSampleNames.length > 0 && (
+                      <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                        <p className="font-medium mb-2">Imported from QuickBooks this run</p>
+                        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                          {qualitySummary.importedSampleNames.map((name, idx) => (
+                            <li key={`${idx}-${name}`}>{name}</li>
+                          ))}
+                          {importedCount > qualitySummary.importedSampleNames.length ? (
+                            <li className="list-none pl-0 text-xs italic">
+                              …and {importedCount - qualitySummary.importedSampleNames.length} more in Items.
+                            </li>
+                          ) : null}
+                        </ul>
+                      </div>
+                    )}
+
+                  {qualitySummary.importRetailerMatchSkipped && importedCount > 0 ? (
+                    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+                      <CardContent className="pt-6 text-sm text-blue-900 dark:text-blue-100">
+                        <p>
+                          Import-time retailer auto-search is turned off in your server configuration (
+                          <code className="text-xs">QB_IMPORT_MATCH_TOP_N=0</code> or{' '}
+                          <code className="text-xs">QB_IMPORT_SKIP_RETAILER_MATCH</code>). Your purchases were still
+                          imported into Procuro — open Items to review and match manually if needed.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border p-3">
-                      <p className="text-muted-foreground">Searchable names</p>
-                      <p className="font-semibold">{qualitySummary.goodCount} / {qualitySummary.topN}</p>
+                      <p className="text-muted-foreground">Good / classified names</p>
+                      <p className="font-semibold">
+                        {qualitySummary.goodCount} / {qualitySummary.candidatesEvaluated}
+                      </p>
                     </div>
                     <div className="rounded-md border p-3">
                       <p className="text-muted-foreground">Need fixing</p>
@@ -187,14 +231,17 @@ export function QBSuccess() {
                     </div>
                   </div>
 
-                  {qualitySummary.zeroGoodNames ? (
+                  {qualitySummary.zeroGoodNames &&
+                  !qualitySummary.importRetailerMatchSkipped &&
+                  qualitySummary.candidatesEvaluated > 0 ? (
                     <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
                       <CardContent className="pt-6 space-y-3">
                         <p className="font-semibold text-amber-900 dark:text-amber-100">
                           No good searchable names were found in this import.
                         </p>
                         <p className="text-sm text-amber-800 dark:text-amber-200">
-                          We skipped auto-search to avoid bad matches. Add items manually and use clear product names.
+                          Names looked like vendor bills or were too vague for retail search. Rename lines in Items or add
+                          clear product-style names manually.
                         </p>
                       </CardContent>
                     </Card>
@@ -202,9 +249,20 @@ export function QBSuccess() {
 
                   <div className="rounded-md border p-3 text-sm space-y-2">
                     <p className="font-medium">What to do next</p>
-                    <p>Good names were auto-searched. Fixable names can be renamed in Items. Trash names stay ignored.</p>
+                    {qualitySummary.importRetailerMatchSkipped ? (
+                      <p>
+                        Review imported items and add clearer names where needed. Open Items to adjust names or add
+                        products manually for monitoring.
+                      </p>
+                    ) : (
+                      <p>
+                        Good names were auto-searched when import-time matching is enabled. Fixable names can be renamed
+                        in Items. Trash names stay ignored for matching.
+                      </p>
+                    )}
                     <p>
-                      You can manually add up to <strong>{qualitySummary.canAddManuallyCount}</strong> more high-value items now.
+                      You can manually add up to <strong>{qualitySummary.canAddManuallyCount}</strong> more items within
+                      your monitoring limit ({maxMonitoredItems} total watched).
                     </p>
                     <p className="text-muted-foreground">
                       Good examples: "HP 414A Cyan Toner Cartridge", "3M 8210 N95 Respirator 20 pack", "Rubbermaid 32 Gallon Brute Trash Can".

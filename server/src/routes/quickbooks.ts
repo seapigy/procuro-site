@@ -93,15 +93,23 @@ interface QbImportQualityRow {
 
 interface QbImportQualitySummary {
   lookbackDays: number;
+  /** QB_IMPORT_MATCH_TOP_N — max distinct names eligible for import-time retailer matching. */
   topN: number;
+  /** Distinct imported purchase-line names classified for quality (matches unique imports when purchases exist). */
   candidatesEvaluated: number;
   goodCount: number;
   fixableCount: number;
   trashCount: number;
   searchableCount: number;
   autoMatchedCount: number;
+  /** True only when at least one name was classified and none were "good" (bad names), not when matching is disabled by policy. */
   zeroGoodNames: boolean;
+  /** Slots under monitoring cap not filled by this import’s distinct items (rough guidance for manual adds). */
   canAddManuallyCount: number;
+  /** Import-time retailer matching did not run (cap 0 or QB_IMPORT_SKIP_RETAILER_MATCH). */
+  importRetailerMatchSkipped?: boolean;
+  /** First N imported display names for success-page UX. */
+  importedSampleNames?: string[];
   rows: QbImportQualityRow[];
 }
 
@@ -672,8 +680,9 @@ async function fetchAndStoreItems(
         const qb = eb.quantities.reduce((s, q) => s + q, 0);
         return qb - qa;
       });
-      const topKeys = sortedKeys.slice(0, Math.max(0, matchTopN));
-      const qualityRowsSeed = topKeys.map((key) => {
+      /** Names eligible for import-time retailer matching only (QB_IMPORT_MATCH_TOP_N cap). */
+      const matchingSliceKeys = sortedKeys.slice(0, Math.max(0, matchTopN));
+      const qualityRowsForMatching = matchingSliceKeys.map((key) => {
         const entry = itemPurchaseMap.get(key)!;
         const quality = classifyQbImportNameQuality(entry.itemData.name);
         return {
@@ -684,12 +693,33 @@ async function fetchAndStoreItems(
         };
       });
       const importMatchKeys = new Set(
-        qualityRowsSeed.filter((row) => row.quality === 'good').map((row) => row.key)
+        qualityRowsForMatching.filter((row) => row.quality === 'good').map((row) => row.key)
       );
       const qualityByKey = new Map<string, QbImportQualityBucket>();
-      for (const row of qualityRowsSeed) {
-        qualityByKey.set(row.key, row.quality);
+      for (const key of sortedKeys) {
+        const entry = itemPurchaseMap.get(key)!;
+        qualityByKey.set(key, classifyQbImportNameQuality(entry.itemData.name));
       }
+      let goodCountAll = 0;
+      let fixableCountAll = 0;
+      let trashCountAll = 0;
+      for (const key of sortedKeys) {
+        const q = qualityByKey.get(key)!;
+        if (q === 'good') goodCountAll += 1;
+        else if (q === 'fixable') fixableCountAll += 1;
+        else trashCountAll += 1;
+      }
+      const QUALITY_ROWS_DISPLAY_CAP = 50;
+      const qualityRowsDisplay = sortedKeys.slice(0, QUALITY_ROWS_DISPLAY_CAP).map((key) => {
+        const entry = itemPurchaseMap.get(key)!;
+        const quality = qualityByKey.get(key)!;
+        return {
+          key,
+          name: entry.itemData.name,
+          lineCount: entry.purchaseDates.length,
+          quality,
+        };
+      });
       if (matchTopN > 0 && !qbImportSkipAllRetailerMatch) {
         console.log(
           `📊 QB import: ${importMatchKeys.size} item name(s) selected for retailer match (cap ${matchTopN}, garbage excluded).`
@@ -931,21 +961,22 @@ async function fetchAndStoreItems(
       }
       
       const uniqueItemCount = itemPurchaseMap.size;
-      const goodCount = qualityRowsSeed.filter((r) => r.quality === 'good').length;
-      const fixableCount = qualityRowsSeed.filter((r) => r.quality === 'fixable').length;
-      const trashCount = qualityRowsSeed.filter((r) => r.quality === 'trash').length;
+      const maxMonitoredItemsCap = (appConfig.monitoring?.maxMonitoredItemsPerCompany as number) || 20;
+      const importRetailerMatchSkipped = matchTopN === 0 || qbImportSkipAllRetailerMatch;
       const qualitySummary: QbImportQualitySummary = {
         lookbackDays,
         topN: matchTopN,
-        candidatesEvaluated: qualityRowsSeed.length,
-        goodCount,
-        fixableCount,
-        trashCount,
-        searchableCount: qbImportSkipAllRetailerMatch ? 0 : goodCount,
+        candidatesEvaluated: sortedKeys.length,
+        goodCount: goodCountAll,
+        fixableCount: fixableCountAll,
+        trashCount: trashCountAll,
+        searchableCount: qbImportSkipAllRetailerMatch ? 0 : goodCountAll,
         autoMatchedCount: qbImportSkipAllRetailerMatch ? 0 : importMatchedKeys.size,
-        zeroGoodNames: goodCount === 0,
-        canAddManuallyCount: Math.max(0, matchTopN - goodCount),
-        rows: qualityRowsSeed.map((row) => ({
+        zeroGoodNames: sortedKeys.length > 0 && goodCountAll === 0,
+        canAddManuallyCount: Math.max(0, maxMonitoredItemsCap - uniqueItemCount),
+        importRetailerMatchSkipped,
+        importedSampleNames: sortedKeys.slice(0, 15).map((k) => itemPurchaseMap.get(k)!.itemData.name),
+        rows: qualityRowsDisplay.map((row) => ({
           ...row,
           matchedAutomatically: importMatchedKeys.has(row.key),
         })),
@@ -959,9 +990,8 @@ async function fetchAndStoreItems(
       });
       
       if (user?.companyId) {
-        const maxMonitoredItems = (appConfig.monitoring?.maxMonitoredItemsPerCompany as number) || 20;
         console.log(`🔄 Recomputing monitoring priorities for company ${user.companyId}...`);
-        await recomputeMonitoringForCompany(user.companyId, maxMonitoredItems);
+        await recomputeMonitoringForCompany(user.companyId, maxMonitoredItemsCap);
         
         // Update company with imported count
         await prisma.company.update({
@@ -991,6 +1021,7 @@ async function fetchAndStoreItems(
           },
         });
       }
+      const maxCapEmpty = (appConfig.monitoring?.maxMonitoredItemsPerCompany as number) || 20;
       return {
         importedCount: 0,
         qualitySummary: {
@@ -1002,8 +1033,10 @@ async function fetchAndStoreItems(
           trashCount: 0,
           searchableCount: 0,
           autoMatchedCount: 0,
-          zeroGoodNames: true,
-          canAddManuallyCount: matchTopN,
+          zeroGoodNames: false,
+          canAddManuallyCount: maxCapEmpty,
+          importRetailerMatchSkipped: matchTopN === 0 || qbImportSkipAllRetailerMatch,
+          importedSampleNames: [],
           rows: [],
         },
       };
