@@ -23,6 +23,7 @@ import adminRoutes from './routes/admin';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { securityHeaders } from './middleware/securityHeaders';
 import { companyContext } from './middleware/companyContext';
+import { activationTenantFallback } from './middleware/activationTenantFallback';
 import { allowTestAndDebugRoutes } from './middleware/allowTestRoutes';
 import testRoutes from './routes/test';
 import debugRoutes from './routes/debug';
@@ -39,6 +40,8 @@ assertBrightDataConfigWhenEnabled();
 validateRequiredEnvForRuntime();
 
 const app = express();
+// Render/proxies send X-Forwarded-*; required for express-rate-limit and accurate req.ip
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 const PORT = process.env.PORT || 5000;
 const clientDistDir = path.join(__dirname, '../../client/dist');
 const clientDistIndex = path.join(clientDistDir, 'index.html');
@@ -145,6 +148,8 @@ app.use('/api/simulate', simulateRoutes);
 
 // Resolve company context for tenant isolation (sets req.companyId)
 app.use('/api', companyContext);
+// Same-origin prod: hydrate tenant when session headers absent (mirrors activation billing fallback)
+app.use('/api', activationTenantFallback);
 
 // Serve landing static assets (e.g. /landing/styles.css used by landing/index.html)
 app.use('/landing', express.static(path.join(__dirname, '../../landing')));
